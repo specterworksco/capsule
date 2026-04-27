@@ -15,23 +15,31 @@ permissions:
 jobs:
   build:
     name: Build ${{ matrix.artifact }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            artifact: capsule-linux-x64
-            binary: apps/cli/dist/capsule
+          - artifact: capsule-linux-x64
+            target: bun-linux-x64
+            binary: apps/cli/dist/capsule-linux-x64
             asset: capsule-linux-x64
-          - os: macos-13
-            artifact: capsule-macos-x64
-            binary: apps/cli/dist/capsule
+          - artifact: capsule-linux-arm64
+            target: bun-linux-arm64
+            binary: apps/cli/dist/capsule-linux-arm64
+            asset: capsule-linux-arm64
+          - artifact: capsule-macos-x64
+            target: bun-darwin-x64
+            binary: apps/cli/dist/capsule-macos-x64
             asset: capsule-macos-x64
-          - os: windows-latest
-            artifact: capsule-windows-x64
-            binary: apps/cli/dist/capsule.exe
+          - artifact: capsule-macos-arm64
+            target: bun-darwin-arm64
+            binary: apps/cli/dist/capsule-macos-arm64
+            asset: capsule-macos-arm64
+          - artifact: capsule-windows-x64
+            target: bun-windows-x64
+            binary: apps/cli/dist/capsule-windows-x64.exe
             asset: capsule-windows-x64.exe
 
     steps:
@@ -50,7 +58,7 @@ jobs:
         run: bun run typecheck
 
       - name: Compile CLI
-        run: bun run compile
+        run: bun run --cwd apps/cli compile -- ${{ matrix.target }} ${{ matrix.asset }}
 
       - name: Stage artifact
         shell: bash

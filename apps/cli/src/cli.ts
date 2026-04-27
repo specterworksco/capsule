@@ -6,11 +6,12 @@ import { infoCommand } from "./commands/info";
 import { internalRunCommand } from "./commands/_internal";
 import { publishCommand } from "./commands/publish";
 import { runCommand } from "./commands/run";
+import packageJson from "../package.json";
 
 export const mainCommand = defineCommand({
   meta: {
     name: "capsule",
-    version: "1.0.0",
+    version: packageJson.version,
     description: "Distribute and run JavaScript apps without requiring users to install a JS runtime",
   },
   subCommands: {

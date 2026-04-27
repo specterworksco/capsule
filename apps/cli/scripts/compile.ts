@@ -6,12 +6,15 @@ const cliRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const workspaceRoot = join(cliRoot, "../..");
 const entrypoint = join(cliRoot, "src/index.ts");
 const outDir = join(cliRoot, "dist");
-const outfile = join(outDir, process.platform === "win32" ? "capsule.exe" : "capsule");
+const target = process.argv[2];
+const outputName = process.argv[3] ?? (process.platform === "win32" ? "capsule.exe" : "capsule");
+const outfile = join(outDir, outputName);
+const targetArgs = target ? [`--target=${target}`] : [];
 
 await mkdir(outDir, { recursive: true });
 
 const proc = Bun.spawn({
-  cmd: ["bun", "build", "--compile", entrypoint, "--outfile", outfile],
+  cmd: ["bun", "build", "--compile", ...targetArgs, entrypoint, "--outfile", outfile],
   cwd: workspaceRoot,
   stdout: "inherit",
   stderr: "inherit",
