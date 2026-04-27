@@ -1,0 +1,16 @@
+name = "capsule-keyring"
+main = "src/index.ts"
+compatibility_date = "2026-04-26"
+
+routes = [
+  { pattern = "keyring.usecapsule.net", custom_domain = true }
+]
+
+[[kv_namespaces]]
+binding = "CAPSULE_KEYRING"
+id = "7068aa43c243449a87b73fd670b0e24b"
+preview_id = "7068aa43c243449a87b73fd670b0e24b"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
