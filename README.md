@@ -6,15 +6,33 @@ The goal is practical distribution: users can install and run a Capsule app with
 
 ## Contents
 
+- [Install Capsule](#install-capsule)
 - [End User Quick Start](#end-user-quick-start)
 - [Developer Quick Start](#developer-quick-start)
 - [Project Services](#project-services)
 - [Repository Layout](#repository-layout)
 - [Detailed Documentation](#detailed-documentation)
 
+## Install Capsule
+
+Unix-like systems:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/specterworksco/capsule/main/scripts/install.sh | sh
+```
+
+Windows PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/specterworksco/capsule/main/scripts/install.ps1 | iex
+```
+
+Both installers download the latest GitHub Release binary into the Capsule bin directory. Set `CAPSULE_INSTALL_DIR` to install somewhere else.
+They also add that directory to your PATH automatically.
+
 ## End User Quick Start
 
-Capsule currently builds the CLI binary from source:
+Install the Capsule binary with the one-liner above, or build it from source:
 
 ```bash
 bun install
