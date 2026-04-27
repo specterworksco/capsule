@@ -4,6 +4,28 @@ set -eu
 REPO="specterworksco/capsule"
 INSTALL_DIR="${CAPSULE_INSTALL_DIR:-$HOME/.capsule/bin}"
 
+add_path() {
+  file="$1"
+
+  mkdir -p "$(dirname "$file")"
+
+  if [ ! -e "$file" ]; then
+    : > "$file"
+  fi
+
+  if grep -Fqs "# Capsule PATH" "$file"; then
+    return 0
+  fi
+
+  {
+    printf '\n# Capsule PATH\n'
+    printf 'case ":$PATH:" in\n'
+    printf '  *":%s:"*) ;;\n' "$INSTALL_DIR"
+    printf '  *) export PATH="%s:$PATH" ;;\n' "$INSTALL_DIR"
+    printf 'esac\n'
+  } >> "$file"
+}
+
 case "$(uname -s)" in
   Darwin)
     os="macos"
@@ -52,25 +74,3 @@ export PATH="$INSTALL_DIR:$PATH"
 
 echo "Capsule installed to $INSTALL_DIR/capsule"
 echo "Capsule added to your PATH in your shell profile files. Restart your shell or source the file to use it immediately."
-
-add_path() {
-  file="$1"
-
-  mkdir -p "$(dirname "$file")"
-
-  if [ ! -e "$file" ]; then
-    : > "$file"
-  fi
-
-  if grep -Fqs "# Capsule PATH" "$file"; then
-    return 0
-  fi
-
-  {
-    printf '\n# Capsule PATH\n'
-    printf 'case ":$PATH:" in\n'
-    printf '  *":%s:"*) ;;\n' "$INSTALL_DIR"
-    printf '  *) export PATH="%s:$PATH" ;;\n' "$INSTALL_DIR"
-    printf 'esac\n'
-  } >> "$file"
-}
