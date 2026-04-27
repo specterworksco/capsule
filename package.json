@@ -1,0 +1,23 @@
+{
+  "name": "capsule-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd apps/cli dev",
+    "keyring:dev": "bun run --cwd apps/keyring dev",
+    "keyring:deploy": "bun run --cwd apps/keyring deploy",
+    "registry:dev": "bun run --cwd apps/registry dev",
+    "registry:deploy": "bun run --cwd apps/registry deploy",
+    "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd apps/cli typecheck && bun run --cwd apps/keyring typecheck && bun run --cwd apps/registry typecheck",
+    "compile": "bun run --cwd apps/cli compile"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "bun-types": "^1.3.13",
+    "typescript": "^6.0.3"
+  }
+}
