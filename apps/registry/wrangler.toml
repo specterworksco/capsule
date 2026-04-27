@@ -1,0 +1,25 @@
+name = "capsule-registry"
+main = "src/index.ts"
+compatibility_date = "2026-04-26"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [
+  { pattern = "registry.usecapsule.net", custom_domain = true }
+]
+
+[vars]
+KEYRING_SERVER = "https://keyring.usecapsule.net"
+
+[[kv_namespaces]]
+binding = "CAPSULE_REGISTRY"
+id = "96aa8b1669244f018733c1688a710241"
+preview_id = "96aa8b1669244f018733c1688a710241"
+
+[[r2_buckets]]
+binding = "CAPSULE_APPS"
+bucket_name = "capsule-apps"
+preview_bucket_name = "capsule-apps"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
