@@ -1,0 +1,69 @@
+import { strToU8 } from "fflate";
+import { resolve } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import type { BuildOptions, BuildResult } from "../types";
+import { createCapsuleArchive } from "./archive";
+import { computeContentHash, signContentHash } from "./crypto";
+import { configToManifest, loadCapsuleConfig } from "./manifest";
+import { loadCertificate } from "./store";
+
+export async function buildCapsule(options: BuildOptions): Promise<BuildResult> {
+  const cwd = resolve(options.cwd);
+  const config = await loadCapsuleConfig(cwd);
+  const manifest = configToManifest(config);
+  const entryPath = resolve(cwd, config.entry);
+
+  const bundle = await bundleProject(entryPath);
+  const manifestJson = JSON.stringify(manifest, null, 2);
+  const manifestBytes = strToU8(manifestJson);
+  const files: Record<string, Uint8Array | string> = {
+    "manifest.json": manifestBytes,
+    "bundle.js": bundle,
+  };
+  let signed = false;
+
+  const certificate = await loadCertificate();
+  if (certificate) {
+    const contentHash = await computeContentHash(manifestBytes, bundle);
+    const signature = await signContentHash(contentHash, certificate.privateKey);
+    files["capsule.sig"] = JSON.stringify(
+      {
+        certificateId: certificate.certificateId,
+        signature,
+        publicKey: certificate.publicKey,
+      },
+      null,
+      2,
+    );
+    signed = true;
+  }
+
+  const archive = createCapsuleArchive(files);
+
+  const outputPath = resolve(cwd, options.output ?? `dist/${manifest.name}.capsule.app`);
+  await mkdir(resolve(outputPath, ".."), { recursive: true });
+  await writeFile(outputPath, archive);
+
+  return { outputPath, signed };
+}
+
+async function bundleProject(entryPath: string): Promise<Uint8Array> {
+  const result = await Bun.build({
+    entrypoints: [entryPath],
+    target: "bun",
+    format: "esm",
+    minify: false,
+  });
+
+  if (!result.success) {
+    const message = result.logs.map((log) => log.message).join("\n") || "Bun.build failed";
+    throw new Error(message);
+  }
+
+  const output = result.outputs[0];
+  if (!output) {
+    throw new Error("Bun.build did not produce a bundle");
+  }
+
+  return new Uint8Array(await output.arrayBuffer());
+}
