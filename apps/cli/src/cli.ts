@@ -10,7 +10,7 @@ import { runCommand } from "./commands/run";
 export const mainCommand = defineCommand({
   meta: {
     name: "capsule",
-    version: "0.1.0",
+    version: "1.0.0",
     description: "Distribute and run JavaScript apps without requiring users to install a JS runtime",
   },
   subCommands: {

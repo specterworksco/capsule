@@ -1,0 +1,66 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: capsule-linux-x64
+            binary: apps/cli/dist/capsule
+            asset: capsule-linux-x64
+          - os: macos-13
+            artifact: capsule-macos-x64
+            binary: apps/cli/dist/capsule
+            asset: capsule-macos-x64
+          - os: windows-latest
+            artifact: capsule-windows-x64
+            binary: apps/cli/dist/capsule.exe
+            asset: capsule-windows-x64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Compile CLI
+        run: bun run compile
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "${{ matrix.binary }}" "release/${{ matrix.asset }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.asset }}
+          if-no-files-found: error
