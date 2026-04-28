@@ -16,16 +16,32 @@ resolveRoute.get("/:name", async (c) => {
     return jsonError(c, "Unknown package", 404);
   }
 
+  if (app.state === "tombstoned") {
+    return c.json(
+      {
+        state: "tombstoned",
+        name,
+        author: app.author,
+        certificateId: app.certificateId,
+        tombstonedAt: app.tombstonedAt,
+        tombstoneMessage: app.tombstoneMessage,
+      },
+      410,
+    );
+  }
+
   const version = await getVersion(c.env, name, app.latestVersion);
   if (!version) {
     return jsonError(c, "Package metadata is incomplete", 500);
   }
 
   return c.json({
+    state: "active",
     name,
     version: app.latestVersion,
     downloadUrl: downloadUrl(c, name, app.latestVersion),
     author: app.author,
+    certificateId: app.certificateId,
     hash: version.hash,
   });
 });
@@ -47,16 +63,32 @@ resolveRoute.get("/:name/:version", async (c) => {
     return jsonError(c, "Unknown package", 404);
   }
 
+  if (app.state === "tombstoned") {
+    return c.json(
+      {
+        state: "tombstoned",
+        name,
+        author: app.author,
+        certificateId: app.certificateId,
+        tombstonedAt: app.tombstonedAt,
+        tombstoneMessage: app.tombstoneMessage,
+      },
+      410,
+    );
+  }
+
   const version = await getVersion(c.env, name, requestedVersion);
   if (!version) {
     return jsonError(c, "Unknown package version", 404);
   }
 
   return c.json({
+    state: "active",
     name,
     version: requestedVersion,
     downloadUrl: downloadUrl(c, name, requestedVersion),
     author: app.author,
+    certificateId: app.certificateId,
     hash: version.hash,
   });
 });

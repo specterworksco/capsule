@@ -4,7 +4,7 @@ import type { Env } from "./types";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-export function jsonError(c: Context<{ Bindings: Env }>, message: string, status: 400 | 403 | 404 | 409 | 413 | 500) {
+export function jsonError(c: Context<{ Bindings: Env }>, message: string, status: 400 | 403 | 404 | 409 | 410 | 413 | 500) {
   return c.json({ error: message }, status);
 }
 

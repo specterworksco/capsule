@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { getCapsule, type Env } from "../kv";
+import { getCapsule, getCertificate, type Env } from "../kv";
 
 export const verifyRoute = new Hono<{ Bindings: Env }>();
 
@@ -15,11 +15,15 @@ verifyRoute.get("/:contentHash", async (c) => {
     return c.json({ verified: false });
   }
 
+  const certificate = await getCertificate(c.env, capsule.certificateId);
+
   return c.json({
     verified: true,
     certificateId: capsule.certificateId,
     author: capsule.author,
     publishedAt: capsule.publishedAt,
     publicKey: capsule.publicKey,
+    revokedAt: certificate?.revokedAt,
+    replacedByCertificateId: certificate?.replacedByCertificateId,
   });
 });

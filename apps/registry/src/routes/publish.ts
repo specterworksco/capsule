@@ -1,8 +1,9 @@
 import { Hono } from "hono";
+import { REGISTRY_TOMBSTONE_MESSAGE } from "@capsule/shared";
 import { computeContentHash } from "../crypto";
 import { downloadUrl, jsonError, MAX_UPLOAD_BYTES } from "../http";
 import { verifyCapsuleHash } from "../keyring";
-import { getApp, getVersion, putApp, putVersion } from "../kv";
+import { addOwnedApp, getApp, getVersion, putApp, putVersion } from "../kv";
 import { appObjectKey, putAppObject } from "../r2";
 import { compareVersions } from "../semver";
 import type { Env } from "../types";
@@ -67,8 +68,16 @@ publishRoute.post("/", async (c) => {
     return jsonError(c, "Capsule was signed by a different publisher certificate", 403);
   }
 
+  if (keyring.revokedAt) {
+    return jsonError(c, "Certificate revoked", 403);
+  }
+
   const { name, version } = content.manifest;
   const existingApp = await getApp(c.env, name);
+  if (existingApp?.state === "tombstoned") {
+    return jsonError(c, existingApp.tombstoneMessage || REGISTRY_TOMBSTONE_MESSAGE, 410);
+  }
+
   if (existingApp && existingApp.certificateId !== certificateId) {
     return jsonError(c, "Package name owned by another publisher", 403);
   }
@@ -85,12 +94,14 @@ publishRoute.post("/", async (c) => {
 
   const latestVersion = existingApp && compareVersions(existingApp.latestVersion, version) > 0 ? existingApp.latestVersion : version;
   await putApp(c.env, name, {
+    state: "active",
     latestVersion,
     certificateId,
     author: keyring.author,
     createdAt: existingApp?.createdAt ?? now,
     updatedAt: now,
   });
+  await addOwnedApp(c.env, certificateId, name);
 
   return c.json({ success: true, name, version, downloadUrl: downloadUrl(c, name, version) });
 });

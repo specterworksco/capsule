@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { jsonError, parseName, parseVersion } from "../http";
-import { getVersion } from "../kv";
+import { getApp, getVersion } from "../kv";
 import { getAppObject } from "../r2";
 import type { Env } from "../types";
 
@@ -16,6 +16,15 @@ downloadRoute.get("/:name/:version", async (c) => {
 
   if (!version) {
     return jsonError(c, "Invalid package version", 400);
+  }
+
+  const app = await getApp(c.env, name);
+  if (!app) {
+    return jsonError(c, "Unknown package", 404);
+  }
+
+  if (app.state === "tombstoned") {
+    return jsonError(c, app.tombstoneMessage, 410);
   }
 
   const metadata = await getVersion(c.env, name, version);

@@ -15,3 +15,7 @@ export async function putAppObject(env: Env, key: string, bytes: Uint8Array): Pr
 export async function getAppObject(env: Env, key: string): Promise<R2ObjectBody | null> {
   return env.CAPSULE_APPS.get(key);
 }
+
+export async function deleteAppObject(env: Env, key: string): Promise<void> {
+  await env.CAPSULE_APPS.delete(key);
+}

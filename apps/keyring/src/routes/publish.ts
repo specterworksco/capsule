@@ -17,6 +17,10 @@ publishRoute.post("/", async (c) => {
     return c.json({ error: "Unknown certificate" }, 404);
   }
 
+  if (certificate.revokedAt) {
+    return c.json({ error: "Certificate revoked" }, 403);
+  }
+
   const valid = await verifyContentHashSignature(parsed.data.contentHash, parsed.data.signature, certificate.publicKey);
   if (!valid) {
     return c.json({ error: "Invalid signature" }, 400);

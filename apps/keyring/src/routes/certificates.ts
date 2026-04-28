@@ -1,9 +1,23 @@
 import { Hono } from "hono";
 import { CertificateRequestSchema } from "@capsule/shared";
 import { generateCertificateKeyPair } from "../crypto";
-import { getCertificateCount, putCertificate, putCertificateCount, type Env } from "../kv";
+import { getCertificate, getCertificateCount, putCertificate, putCertificateCount, type Env } from "../kv";
 
 export const certificatesRoute = new Hono<{ Bindings: Env }>();
+
+certificatesRoute.get("/:certificateId", async (c) => {
+  const certificateId = c.req.param("certificateId");
+  if (!isUuid(certificateId)) {
+    return c.json({ error: "Invalid certificateId" }, 400);
+  }
+
+  const certificate = await getCertificate(c.env, certificateId);
+  if (!certificate) {
+    return c.json({ error: "Unknown certificate" }, 404);
+  }
+
+  return c.json(certificate);
+});
 
 certificatesRoute.post("/", async (c) => {
   const parsed = CertificateRequestSchema.safeParse(await c.req.json().catch(() => undefined));
@@ -39,3 +53,7 @@ certificatesRoute.post("/", async (c) => {
     author,
   });
 });
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}

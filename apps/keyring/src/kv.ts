@@ -1,15 +1,10 @@
-import type { Author } from "@capsule/shared";
+import type { Author, CertificateRecord } from "@capsule/shared";
 
 export type Env = {
   CAPSULE_KEYRING: KVNamespace;
 };
 
-export type StoredCertificate = {
-  certificateId: string;
-  publicKey: string;
-  author: Author;
-  issuedAt: string;
-};
+export type StoredCertificate = CertificateRecord;
 
 export type StoredCapsule = {
   certificateId: string;
@@ -24,6 +19,26 @@ export async function getCertificate(env: Env, certificateId: string): Promise<S
 
 export async function putCertificate(env: Env, certificate: StoredCertificate): Promise<void> {
   await env.CAPSULE_KEYRING.put(`cert:${certificate.certificateId}`, JSON.stringify(certificate));
+}
+
+export async function revokeCertificate(
+  env: Env,
+  certificateId: string,
+  revokedAt: string,
+  replacedByCertificateId?: string,
+): Promise<StoredCertificate | null> {
+  const certificate = await getCertificate(env, certificateId);
+  if (!certificate) {
+    return null;
+  }
+
+  const updated: StoredCertificate = {
+    ...certificate,
+    revokedAt,
+    replacedByCertificateId,
+  };
+  await putCertificate(env, updated);
+  return updated;
 }
 
 export async function getCertificateCount(env: Env, email: string): Promise<number> {

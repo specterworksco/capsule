@@ -9,3 +9,7 @@ export type PublishedVersion = {
   hash: string;
   publishedAt: string;
 };
+
+export type PublishedVersionRecord = PublishedVersion & {
+  r2Key: string;
+};

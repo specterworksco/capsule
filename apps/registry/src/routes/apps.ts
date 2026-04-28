@@ -16,12 +16,25 @@ appsRoute.get("/:name", async (c) => {
     return jsonError(c, "Unknown package", 404);
   }
 
+  if (app.state === "tombstoned") {
+    return c.json({
+      state: "tombstoned",
+      name,
+      author: app.author,
+      certificateId: app.certificateId,
+      tombstonedAt: app.tombstonedAt,
+      tombstoneMessage: app.tombstoneMessage,
+    });
+  }
+
   const versions = await listVersions(c.env, name);
   versions.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 
   return c.json({
+    state: "active",
     name,
     author: app.author,
+    certificateId: app.certificateId,
     latestVersion: app.latestVersion,
     versions,
   });

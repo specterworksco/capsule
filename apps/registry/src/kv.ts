@@ -1,5 +1,5 @@
 import type { RegistryAppMetadata, RegistryVersionMetadata } from "@capsule/shared";
-import type { Env, PublishedVersion } from "./types";
+import type { Env, PublishedVersion, PublishedVersionRecord } from "./types";
 
 export async function getApp(env: Env, name: string): Promise<RegistryAppMetadata | null> {
   return env.CAPSULE_REGISTRY.get<RegistryAppMetadata>(appKey(name), "json");
@@ -7,6 +7,10 @@ export async function getApp(env: Env, name: string): Promise<RegistryAppMetadat
 
 export async function putApp(env: Env, name: string, metadata: RegistryAppMetadata): Promise<void> {
   await env.CAPSULE_REGISTRY.put(appKey(name), JSON.stringify(metadata));
+}
+
+export async function deleteApp(env: Env, name: string): Promise<void> {
+  await env.CAPSULE_REGISTRY.delete(appKey(name));
 }
 
 export async function getVersion(env: Env, name: string, version: string): Promise<RegistryVersionMetadata | null> {
@@ -22,7 +26,16 @@ export async function putVersion(
   await env.CAPSULE_REGISTRY.put(versionKey(name, version), JSON.stringify(metadata));
 }
 
+export async function deleteVersion(env: Env, name: string, version: string): Promise<void> {
+  await env.CAPSULE_REGISTRY.delete(versionKey(name, version));
+}
+
 export async function listVersions(env: Env, name: string): Promise<PublishedVersion[]> {
+  const versions = await listVersionRecords(env, name);
+  return versions.map(({ version, hash, publishedAt }) => ({ version, hash, publishedAt }));
+}
+
+export async function listVersionRecords(env: Env, name: string): Promise<PublishedVersionRecord[]> {
   const listed = await env.CAPSULE_REGISTRY.list({ prefix: versionPrefix(name) });
   const versions = await Promise.all(
     listed.keys.map(async (key) => {
@@ -33,13 +46,27 @@ export async function listVersions(env: Env, name: string): Promise<PublishedVer
 
       return {
         version: key.name.slice(versionPrefix(name).length),
+        r2Key: metadata.r2Key,
         hash: metadata.hash,
         publishedAt: metadata.publishedAt,
       };
     }),
   );
 
-  return versions.filter((version): version is PublishedVersion => version !== null);
+  return versions.filter((version): version is PublishedVersionRecord => version !== null);
+}
+
+export async function addOwnedApp(env: Env, certificateId: string, name: string): Promise<void> {
+  await env.CAPSULE_REGISTRY.put(ownerAppKey(certificateId, name), "1");
+}
+
+export async function removeOwnedApp(env: Env, certificateId: string, name: string): Promise<void> {
+  await env.CAPSULE_REGISTRY.delete(ownerAppKey(certificateId, name));
+}
+
+export async function listOwnedApps(env: Env, certificateId: string): Promise<string[]> {
+  const listed = await env.CAPSULE_REGISTRY.list({ prefix: ownerPrefix(certificateId) });
+  return listed.keys.map((key) => key.name.slice(ownerPrefix(certificateId).length));
 }
 
 function appKey(name: string): string {
@@ -52,4 +79,12 @@ function versionKey(name: string, version: string): string {
 
 function versionPrefix(name: string): string {
   return `app:${name}:`;
+}
+
+function ownerAppKey(certificateId: string, name: string): string {
+  return `${ownerPrefix(certificateId)}${name}`;
+}
+
+function ownerPrefix(certificateId: string): string {
+  return `owner:${certificateId}:`;
 }

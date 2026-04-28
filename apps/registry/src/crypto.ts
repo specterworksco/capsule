@@ -13,6 +13,11 @@ export async function computeContentHash(manifestBytes: Uint8Array, bundleBytes:
   return bytesToHex(new Uint8Array(digest));
 }
 
+export async function verifySignedMessage(message: string, signature: string, publicKey: string): Promise<boolean> {
+  const key = await crypto.subtle.importKey("raw", base64ToBytes(publicKey), { name: "Ed25519" }, false, ["verify"]);
+  return crypto.subtle.verify({ name: "Ed25519" }, key, base64ToBytes(signature), new TextEncoder().encode(message));
+}
+
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
   const length = parts.reduce((total, part) => total + part.byteLength, 0);
   const output = new Uint8Array(length);
@@ -40,4 +45,15 @@ function bytesToHex(bytes: Uint8Array): string {
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function base64ToBytes(value: string): Uint8Array {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return bytes;
 }
