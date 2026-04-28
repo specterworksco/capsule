@@ -19,6 +19,9 @@ export async function verifyDownloadedCapsule(bytes: Uint8Array, keyringServer?:
     const response = await verifyCapsule(server, contentHash);
     if (response.verified) {
       logger.success(`Signed by ${response.author.name} (${response.author.email})`);
+      if (response.revokedAt) {
+        logger.warn(`The signing certificate was revoked on ${response.revokedAt}.`);
+      }
       return;
     }
 

@@ -1,9 +1,14 @@
 import {
+  CertificateRecordSchema,
+  CertificateRevokeResponseSchema,
   CertificateResponseSchema,
   DEFAULT_KEYRING_SERVER,
   PublishResponseSchema,
   VerifyResponseSchema,
+  type CertificateRecord,
   type CertificateRequest,
+  type CertificateRevokeRequest,
+  type CertificateRevokeResponse,
   type CertificateResponse,
   type PublishRequest,
   type PublishResponse,
@@ -23,6 +28,26 @@ export function resolveKeyringServer(value?: string): string {
 export async function requestCertificate(server: string, request: CertificateRequest): Promise<CertificateResponse> {
   const response = await postJson(`${server}/certificates`, request);
   return CertificateResponseSchema.parse(response);
+}
+
+export async function getCertificateRecord(server: string, certificateId: string): Promise<CertificateRecord> {
+  const response = await fetch(`${server}/certificates/${certificateId}`);
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => response.statusText);
+    throw new Error(`Keyring certificate lookup failed: ${response.status} ${message}`);
+  }
+
+  return CertificateRecordSchema.parse(await response.json());
+}
+
+export async function revokeCertificate(
+  server: string,
+  certificateId: string,
+  request: CertificateRevokeRequest,
+): Promise<CertificateRevokeResponse> {
+  const response = await postJson(`${server}/certificates/${certificateId}/revoke`, request);
+  return CertificateRevokeResponseSchema.parse(response);
 }
 
 export async function publishCapsule(server: string, request: PublishRequest): Promise<PublishResponse> {

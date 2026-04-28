@@ -16,8 +16,12 @@ export async function computeContentHash(manifestBytes: Uint8Array, bundleBytes:
 }
 
 export async function signContentHash(contentHash: string, privateKey: string): Promise<string> {
+  return signMessage(contentHash, privateKey);
+}
+
+export async function signMessage(message: string, privateKey: string): Promise<string> {
   const key = await crypto.subtle.importKey("pkcs8", base64ToArrayBuffer(privateKey), { name: "Ed25519" }, false, ["sign"]);
-  const signature = await crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(contentHash));
+  const signature = await crypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(message));
 
   return bytesToBase64(new Uint8Array(signature));
 }

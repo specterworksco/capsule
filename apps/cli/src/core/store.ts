@@ -70,6 +70,16 @@ export async function saveCertificate(certificate: CertificateResponse): Promise
   return certificatePath;
 }
 
+export async function deleteCertificate(): Promise<void> {
+  const certificatePath = getCertificatePath();
+  if (!existsSync(certificatePath)) {
+    return;
+  }
+
+  await chmod(certificatePath, 0o600).catch(() => undefined);
+  await unlink(certificatePath);
+}
+
 export async function getInstalledApp(name: string): Promise<InstalledApp | undefined> {
   const appDir = getAppDir(name);
   const manifestPath = join(appDir, "manifest.json");
