@@ -48,13 +48,13 @@ apps/cli/dist/capsule
 Put that binary somewhere on your `PATH`, then install an app from the Registry:
 
 ```bash
-capsule get myapp
+capsule registry install myapp
 ```
 
 You can also install directly from a `.capsule.app` URL:
 
 ```bash
-capsule get https://example.com/myapp.capsule.app
+capsule registry install https://example.com/myapp.capsule.app
 ```
 
 Installed apps are stored under `~/.capsule/apps/`, and runnable shims are created under `~/.capsule/bin/`. Add `~/.capsule/bin` to your `PATH` if Capsule warns that it is missing.
@@ -78,7 +78,7 @@ export default {
 Request a signing certificate:
 
 ```bash
-capsule certificates request
+capsule certificate request
 ```
 
 Build a `.capsule.app` archive:
@@ -90,13 +90,13 @@ capsule build
 Publish it to the Keyring and Registry:
 
 ```bash
-capsule publish dist/myapp.capsule.app
+capsule registry publish dist/myapp.capsule.app
 ```
 
 Users can then install it with:
 
 ```bash
-capsule get myapp
+capsule registry install myapp
 ```
 
 ## Project Services
@@ -112,13 +112,13 @@ Capsule is split into three implemented parts:
 The normal publish path is:
 
 ```text
-capsule build -> capsule publish -> Keyring /publish -> Registry /publish
+capsule build -> capsule registry publish -> Keyring /publish -> Registry /publish
 ```
 
 The normal install path is:
 
 ```text
-capsule get myapp -> Registry /resolve/myapp -> Registry /download/... -> Keyring /verify/:hash
+capsule registry install myapp -> Registry /resolve/myapp -> Registry /download/... -> Keyring /verify/:hash
 ```
 
 ## Repository Layout

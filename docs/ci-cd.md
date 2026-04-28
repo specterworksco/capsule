@@ -11,9 +11,9 @@
 
 ## Overview
 
-`capsule publish` requires a local Capsule certificate file. CI environments must provide that file before running `capsule build` or `capsule publish`.
+`capsule registry publish` requires a local Capsule certificate file. CI environments must provide that file before running `capsule build` or `capsule registry publish`.
 
-Capsule does not currently implement a separate non-interactive certificate request command. `capsule certificates request` prompts for name and email.
+Capsule does not currently implement a separate non-interactive certificate request command. `capsule certificate request` prompts for name and email.
 
 ## Certificate Requirements
 
@@ -43,7 +43,7 @@ The file must match the Keyring certificate response schema:
 Create this certificate locally with:
 
 ```bash
-capsule certificates request
+capsule certificate request
 ```
 
 Then store the full JSON file as a CI secret using your CI provider's secret storage.
@@ -59,12 +59,12 @@ mkdir -p ~/.capsule
 # write certificate secret to ~/.capsule/certificate.json
 chmod 600 ~/.capsule/certificate.json
 ./apps/cli/dist/capsule build
-./apps/cli/dist/capsule publish dist/myapp.capsule.app
+./apps/cli/dist/capsule registry publish dist/myapp.capsule.app
 ```
 
 If the project uses a custom output path, publish that path instead.
 
-Build after installing the certificate. `capsule publish` registers a signed hash, but it does not rewrite the archive to add `capsule.sig` if the archive was built unsigned.
+Build after installing the certificate. `capsule registry publish` registers a signed hash, but it does not rewrite the archive to add `capsule.sig` if the archive was built unsigned.
 
 ## GitHub Actions Example
 
@@ -100,7 +100,7 @@ jobs:
 
       - run: ./apps/cli/dist/capsule build
 
-      - run: ./apps/cli/dist/capsule publish dist/myapp.capsule.app
+      - run: ./apps/cli/dist/capsule registry publish dist/myapp.capsule.app
 ```
 
 ## Custom Services
@@ -116,7 +116,7 @@ env:
 Or pass flags directly:
 
 ```bash
-capsule publish dist/myapp.capsule.app \
+capsule registry publish dist/myapp.capsule.app \
   --keyring-server https://keyring.example.com \
   --registry-server https://registry.example.com
 ```

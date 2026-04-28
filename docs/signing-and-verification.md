@@ -22,7 +22,7 @@ Capsule signing does not sandbox code. See [Security](./security.md) for executi
 
 ### Certificate request
 
-1. Developer runs `capsule certificates request`.
+1. Developer runs `capsule certificate request`.
 2. CLI prompts for name and email.
 3. CLI calls Keyring `POST /certificates`.
 4. Keyring generates an Ed25519 keypair.
@@ -44,7 +44,7 @@ The signed files are `manifest.json` and `bundle.js`, with explicit framing. See
 
 ## Publish Flow
 
-1. Developer runs `capsule publish <file.capsule.app>`.
+1. Developer runs `capsule registry publish <file.capsule.app>`.
 2. CLI reads `manifest.json` and `bundle.js` from the archive.
 3. CLI recomputes the Capsule content hash.
 4. CLI signs the hash with the local private key.
@@ -57,11 +57,11 @@ The signed files are `manifest.json` and `bundle.js`, with explicit framing. See
 11. Registry requires that Keyring returns `verified: true` and the same `certificateId`.
 12. Registry stores the file and metadata.
 
-`capsule publish` does not modify the archive. If the archive was built before a local certificate existed, it may be registered in the Keyring and Registry but still lack an embedded `capsule.sig` file. In that case, `capsule get` treats the downloaded archive as unsigned because the current verification path returns early when `capsule.sig` is missing.
+`capsule registry publish` does not modify the archive. If the archive was built before a local certificate existed, it may be registered in the Keyring and Registry but still lack an embedded `capsule.sig` file. In that case, `capsule registry install` treats the downloaded archive as unsigned because the current verification path returns early when `capsule.sig` is missing.
 
 ## Verification During Install
 
-`capsule get` verifies before installing.
+`capsule registry install` verifies before installing.
 
 1. CLI downloads a `.capsule.app` file.
 2. CLI reads `manifest.json`, `bundle.js`, and optional `capsule.sig`.
@@ -107,7 +107,7 @@ How unsigned capsules are created:
 
 How the CLI handles them:
 
-- `capsule get` prints:
+- `capsule registry install` prints:
 
 ```text
 This capsule is not signed or could not be verified. Proceed with caution.

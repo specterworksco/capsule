@@ -94,5 +94,5 @@ Current implementation limitations to account for:
 - Keyring certificate issuance count uses KV and is not transactional.
 - Registry package ownership uses KV and is not protected by an atomic compare-and-set.
 - `capsule run` executes local archives without Keyring verification in the current implementation.
-- `capsule get` verification warnings do not stop installation.
+- `capsule registry install` verification warnings do not stop installation.
 - The Registry publish endpoint reads accepted files into memory after enforcing the 10 MB limit.

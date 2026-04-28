@@ -121,9 +121,9 @@ Signing steps:
 4. Sign the UTF-8 bytes of the 64-character hexadecimal hash string.
 5. Store the base64 signature in `capsule.sig`.
 
-`capsule publish` repeats the same content hash computation and signs the hash again before sending it to the Keyring and Registry.
+`capsule registry publish` repeats the same content hash computation and signs the hash again before sending it to the Keyring and Registry.
 
-`capsule publish` does not rewrite the archive. The only implemented command that embeds `capsule.sig` is `capsule build`, and only when a local certificate exists at build time.
+`capsule registry publish` does not rewrite the archive. The only implemented command that embeds `capsule.sig` is `capsule build`, and only when a local certificate exists at build time.
 
 ## Validation
 

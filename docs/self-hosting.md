@@ -118,9 +118,9 @@ For your own deployment:
 You can point the CLI at custom services per command:
 
 ```bash
-capsule certificates request --keyring-server https://keyring.example.com
-capsule publish dist/myapp.capsule.app --keyring-server https://keyring.example.com --registry-server https://registry.example.com
-capsule get myapp --keyring-server https://keyring.example.com --registry-server https://registry.example.com
+capsule certificate request --keyring-server https://keyring.example.com
+capsule registry publish dist/myapp.capsule.app --keyring-server https://keyring.example.com --registry-server https://registry.example.com
+capsule registry install myapp --keyring-server https://keyring.example.com --registry-server https://registry.example.com
 capsule info myapp --registry-server https://registry.example.com
 ```
 
@@ -177,7 +177,7 @@ When testing a local Registry against a local Keyring, update the Registry `KEYR
 The CLI can then target the local services with:
 
 ```bash
-capsule certificates request --keyring-server http://localhost:8787
-capsule publish dist/myapp.capsule.app --keyring-server http://localhost:8787 --registry-server http://localhost:8788
-capsule get myapp --keyring-server http://localhost:8787 --registry-server http://localhost:8788
+capsule certificate request --keyring-server http://localhost:8787
+capsule registry publish dist/myapp.capsule.app --keyring-server http://localhost:8787 --registry-server http://localhost:8788
+capsule registry install myapp --keyring-server http://localhost:8787 --registry-server http://localhost:8788
 ```
