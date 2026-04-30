@@ -11,8 +11,10 @@ import { certificateCommand } from "./commands/certificate";
 import { internalRunCommand } from "./commands/_internal";
 import { registryCommand } from "./commands/registry";
 import { runCommand } from "./commands/run";
+import { upgradeCommand } from "./commands/upgrade";
 import { whoamiCommand } from "./commands/whoami";
 import packageJson from "../package.json";
+import { checkForUpdate } from "./core/upgrade";
 import { formatError, logger } from "./utils/logger";
 
 export const mainCommand = defineCommand({
@@ -26,6 +28,7 @@ export const mainCommand = defineCommand({
     certificate: certificateCommand,
     registry: registryCommand,
     run: runCommand,
+    upgrade: upgradeCommand,
     whoami: whoamiCommand,
     __run: internalRunCommand,
   },
@@ -38,6 +41,10 @@ export async function runCli(rawArgs = process.argv.slice(2)): Promise<void> {
 
   try {
     if (rawArgs.length === 0 || rawArgs.includes("--help") || rawArgs.includes("-h")) {
+      if (rawArgs.length === 0) {
+        await notifyUpdateAvailable();
+      }
+
       const { command, parent } = await resolveUsageCommand(rawArgs);
       await showUsage(command, parent);
       return;
@@ -52,6 +59,21 @@ export async function runCli(rawArgs = process.argv.slice(2)): Promise<void> {
   } catch (error) {
     logger.error(formatError(error));
     process.exitCode = 1;
+  }
+}
+
+async function notifyUpdateAvailable(): Promise<void> {
+  try {
+    const update = await checkForUpdate(packageJson.version);
+    if (!update) {
+      return;
+    }
+
+    logger.warn(`Capsule ${update.latestVersion} is available. You are running ${update.currentVersion}.`);
+    logger.hint(`Run ${logger.command("capsule upgrade")} to update.`);
+    console.log("");
+  } catch {
+    // Upgrade checks must never block the base command.
   }
 }
 

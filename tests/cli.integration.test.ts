@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { runCli } from "../apps/cli/src/cli";
 import { getCertificatePath, saveCertificate } from "../apps/cli/src/core/store";
+import { resolveReleaseAssetName } from "../apps/cli/src/core/upgrade";
 import {
   createSignedCapsule,
   createTestEnv,
@@ -16,6 +17,8 @@ import {
 
 describe("cli", () => {
   let env: TestEnv;
+  const originalFetch = globalThis.fetch;
+  const originalApiUrl = process.env.CAPSULE_GITHUB_API_URL;
 
   beforeEach(() => {
     env = createTestEnv();
@@ -25,6 +28,35 @@ describe("cli", () => {
   afterEach(() => {
     env.close();
     process.exitCode = undefined;
+    globalThis.fetch = originalFetch;
+    if (originalApiUrl === undefined) {
+      delete process.env.CAPSULE_GITHUB_API_URL;
+    } else {
+      process.env.CAPSULE_GITHUB_API_URL = originalApiUrl;
+    }
+  });
+
+  test("base command shows an update notice when a newer release exists", async () => {
+    process.env.CAPSULE_GITHUB_API_URL = "http://github.test";
+    globalThis.fetch = ((input: RequestInfo | URL) => {
+      if (String(input) === "http://github.test/repos/specterworksco/capsule/releases/latest") {
+        return Promise.resolve(
+          Response.json({
+            tag_name: "v9.0.0",
+            html_url: "http://github.test/release",
+            assets: [{ name: resolveReleaseAssetName(), browser_download_url: "http://download.test/capsule" }],
+          }),
+        );
+      }
+
+      return Promise.resolve(new Response("not found", { status: 404 }));
+    }) as typeof fetch;
+
+    const output = await captureConsole(() => runCli([]));
+
+    expect(process.exitCode).toBeUndefined();
+    expect(output).toContain("Capsule 9.0.0 is available");
+    expect(output).toContain("capsule upgrade");
   });
 
   test("registry download saves direct URL archives without installing them", async () => {
