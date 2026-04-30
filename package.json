@@ -15,7 +15,8 @@
     "registry:deploy": "bun run --cwd apps/registry deploy",
     "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd apps/cli typecheck && bun run --cwd apps/keyring typecheck && bun run --cwd apps/registry typecheck",
     "compile": "bun run --cwd apps/cli compile",
-    "test": "bun test"
+    "test": "bun test",
+    "bump": "bun run utils/bump.ts"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
