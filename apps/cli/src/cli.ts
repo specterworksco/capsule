@@ -11,6 +11,7 @@ import { certificateCommand } from "./commands/certificate";
 import { internalRunCommand } from "./commands/_internal";
 import { registryCommand } from "./commands/registry";
 import { runCommand } from "./commands/run";
+import { whoamiCommand } from "./commands/whoami";
 import packageJson from "../package.json";
 import { formatError, logger } from "./utils/logger";
 
@@ -25,6 +26,7 @@ export const mainCommand = defineCommand({
     certificate: certificateCommand,
     registry: registryCommand,
     run: runCommand,
+    whoami: whoamiCommand,
     __run: internalRunCommand,
   },
 });
