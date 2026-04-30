@@ -59,6 +59,12 @@ capsule registry install https://example.com/myapp.capsule.app
 
 Installed apps are stored under `~/.capsule/apps/`, and runnable shims are created under `~/.capsule/bin/`. Add `~/.capsule/bin` to your `PATH` if Capsule warns that it is missing.
 
+Upgrade Capsule when a new CLI release is available:
+
+```bash
+capsule upgrade
+```
+
 ## Developer Quick Start
 
 Create a JavaScript or TypeScript project with either `capsule.config.ts` or a usable `package.json`.
@@ -79,6 +85,12 @@ Request a signing certificate:
 
 ```bash
 capsule certificate request
+```
+
+Check the local certificate identity:
+
+```bash
+capsule whoami
 ```
 
 Build a `.capsule.app` archive:

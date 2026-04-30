@@ -69,6 +69,40 @@ Printed messages can include:
 ✓ Transferred <count> package(s) to <replacementCertificateId>
 ```
 
+### `capsule whoami`
+
+Show the identity for the locally installed certificate.
+
+```bash
+capsule whoami [--keyring-server <url>]
+```
+
+Behavior:
+
+- Prints local certificate name, email, certificate ID, issue date, and file path.
+- Checks the Keyring public certificate record.
+- Warns if the local public key differs from the Keyring record.
+- Warns if the certificate has been revoked.
+
+### `capsule upgrade`
+
+Upgrade the Capsule CLI to the latest GitHub release.
+
+```bash
+capsule upgrade [--target <bun-target>] [--variant <variant>] [--install-dir <dir>] [--force]
+```
+
+Behavior:
+
+- Checks `https://github.com/specterworksco/capsule` for the latest release.
+- Selects the release asset for the current platform by default.
+- Downloads and installs the binary to `~/.capsule/bin/capsule` or `--install-dir`.
+- `--target` installs an exact Bun compile target asset.
+- `--variant` selects a platform variant such as `baseline`, `modern`, or `musl`.
+- `--force` reinstalls the latest release even when the current version is already up to date.
+
+Running `capsule` without arguments also checks for updates and prints a best-effort notice when a newer release exists.
+
 ### `capsule registry publish <file.capsule.app>`
 
 Register a signed capsule with the Keyring and publish it to the Registry.
@@ -222,6 +256,8 @@ Structure:
 | `certificate revoke` | Registry `GET /owners/:certificateId/apps` |
 | `certificate revoke` | Registry `POST /apps/:name/transfer` |
 | `certificate revoke` | Keyring `POST /certificates/:certificateId/revoke` |
+| `whoami` | Keyring `GET /certificates/:certificateId` |
+| `upgrade` | GitHub `GET /repos/specterworksco/capsule/releases/latest` |
 | `registry publish` | Keyring `POST /publish` |
 | `registry publish` | Registry `POST /publish` |
 | `registry install` | Registry `GET /resolve/:name` when target is a name |
