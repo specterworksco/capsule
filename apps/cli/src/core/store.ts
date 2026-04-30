@@ -8,6 +8,10 @@ import type { InstalledApp } from "../types";
 import { readCapsuleArchive } from "./archive";
 
 export function getStoreRoot(): string {
+  if (process.env.CAPSULE_HOME) {
+    return process.env.CAPSULE_HOME;
+  }
+
   if (platform() === "win32") {
     return process.env.APPDATA ? join(process.env.APPDATA, "capsule") : join(homedir(), "AppData", "Roaming", "capsule");
   }
