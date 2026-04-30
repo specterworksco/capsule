@@ -8,7 +8,7 @@ import type { Env } from "../types";
 
 export const removeRoute = new Hono<{ Bindings: Env }>();
 
-removeRoute.post("/:name", async (c) => {
+removeRoute.post("/:name/remove", async (c) => {
   const name = parseName(c.req.param("name"));
   if (!name) {
     return jsonError(c, "Invalid package name", 400);

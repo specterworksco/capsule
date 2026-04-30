@@ -8,7 +8,7 @@ import type { Env } from "../types";
 
 export const transferRoute = new Hono<{ Bindings: Env }>();
 
-transferRoute.post("/:name", async (c) => {
+transferRoute.post("/:name/transfer", async (c) => {
   const name = parseName(c.req.param("name"));
   if (!name) {
     return jsonError(c, "Invalid package name", 400);

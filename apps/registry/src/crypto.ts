@@ -14,8 +14,12 @@ export async function computeContentHash(manifestBytes: Uint8Array, bundleBytes:
 }
 
 export async function verifySignedMessage(message: string, signature: string, publicKey: string): Promise<boolean> {
-  const key = await crypto.subtle.importKey("raw", base64ToBytes(publicKey), { name: "Ed25519" }, false, ["verify"]);
-  return crypto.subtle.verify({ name: "Ed25519" }, key, base64ToBytes(signature), new TextEncoder().encode(message));
+  try {
+    const key = await crypto.subtle.importKey("raw", base64ToBytes(publicKey), { name: "Ed25519" }, false, ["verify"]);
+    return crypto.subtle.verify({ name: "Ed25519" }, key, base64ToBytes(signature), new TextEncoder().encode(message));
+  } catch {
+    return false;
+  }
 }
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
