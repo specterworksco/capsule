@@ -15,20 +15,21 @@ The goal is practical distribution: users can install and run a Capsule app with
 
 ## Install Capsule
 
-Unix-like systems:
+Unix-like systems (Linux / macOS):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/specterworksco/capsule/main/scripts/install.sh | sh
+curl -fsSLo /tmp/capsule-installer "https://github.com/specterworksco/capsule/releases/latest/download/capsule-installer-$(uname -s | tr '[:upper:]' '[:lower:]'|sed 's/darwin/macos/')-$(uname -m|sed 's/x86_64/x64/;s/aarch64/arm64/')" && chmod +x /tmp/capsule-installer && /tmp/capsule-installer --yes
 ```
 
 Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/specterworksco/capsule/main/scripts/install.ps1 | iex
+$url = "https://github.com/specterworksco/capsule/releases/latest/download/capsule-installer-windows-$(@{AMD64='x64';ARM64='arm64'}[$env:PROCESSOR_ARCHITECTURE]).exe"; $tmp = "$env:TEMP\capsule-installer.exe"; Invoke-WebRequest -Uri $url -OutFile $tmp; & $tmp --yes
 ```
 
-Both installers download the latest GitHub Release binary into the Capsule bin directory. Set `CAPSULE_INSTALL_DIR` to install somewhere else.
-They also add that directory to your PATH automatically.
+Both one-liners download the pre-compiled installer binary for your platform and run it with `--yes` (non-interactive). The installer places the `capsule` binary in `~/.capsule/bin` and adds it to your PATH automatically.
+
+Set `CAPSULE_INSTALL_DIR` to install somewhere else, or omit `--yes` for an interactive install.
 
 ## End User Quick Start
 
