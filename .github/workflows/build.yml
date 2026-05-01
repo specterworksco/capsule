@@ -107,3 +107,58 @@ jobs:
           name: ${{ matrix.artifact }}
           path: release/${{ matrix.asset }}
           if-no-files-found: error
+
+  build-installer:
+    name: Build installer ${{ matrix.artifact }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: capsule-installer-linux-x64
+            target: bun-linux-x64
+            asset: capsule-installer-linux-x64
+          - artifact: capsule-installer-linux-arm64
+            target: bun-linux-arm64
+            asset: capsule-installer-linux-arm64
+          - artifact: capsule-installer-macos-x64
+            target: bun-darwin-x64
+            asset: capsule-installer-macos-x64
+          - artifact: capsule-installer-macos-arm64
+            target: bun-darwin-arm64
+            asset: capsule-installer-macos-arm64
+          - artifact: capsule-installer-windows-x64
+            target: bun-windows-x64
+            asset: capsule-installer-windows-x64.exe
+          - artifact: capsule-installer-windows-arm64
+            target: bun-windows-arm64
+            asset: capsule-installer-windows-arm64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile installer
+        run: bun run --cwd apps/cli compile-installer -- ${{ matrix.target }} ${{ matrix.asset }}
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "scripts/dist/${{ matrix.asset }}" "release/${{ matrix.asset }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.asset }}
+          if-no-files-found: error
