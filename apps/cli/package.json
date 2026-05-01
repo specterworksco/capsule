@@ -1,6 +1,6 @@
 {
   "name": "@capsule/cli",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
@@ -11,7 +11,7 @@
     "dev": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
     "compile": "bun run scripts/compile.ts",
-    "compile-installer": "bun run scripts/compile-installer.ts",
+    "compile-installer": "bun run scripts/compile-installer.ts"
   },
   "dependencies": {
     "@capsule/shared": "workspace:*",
