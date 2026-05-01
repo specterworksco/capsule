@@ -15,6 +15,7 @@
     "registry:deploy": "bun run --cwd apps/registry deploy",
     "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd apps/cli typecheck && bun run --cwd apps/keyring typecheck && bun run --cwd apps/registry typecheck",
     "compile": "bun run --cwd apps/cli compile",
+    "compile-installer": "bun run --cwd apps/cli compile-installer",
     "test": "bun test",
     "bump": "bun run utils/bump.ts"
   },

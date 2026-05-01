@@ -10,12 +10,14 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
-    "compile": "bun run scripts/compile.ts"
+    "compile": "bun run scripts/compile.ts",
+    "compile-installer": "bun run scripts/compile-installer.ts",
   },
   "dependencies": {
     "@capsule/shared": "workspace:*",
     "citty": "^0.2.2",
     "fflate": "^0.8.2",
+    "javascript-obfuscator": "^5.4.2",
     "picocolors": "^1.1.1"
   }
 }
