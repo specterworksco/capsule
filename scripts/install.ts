@@ -21,8 +21,8 @@
  *   CAPSULE_REPO            GitHub repo (default: specterworksco/capsule)
  */
 
-import { existsSync, mkdirSync, chmodSync } from "node:fs";
-import { writeFile, unlink } from "node:fs/promises";
+import { existsSync, mkdirSync, chmodSync, statSync, createWriteStream } from "node:fs";
+import { unlink } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -30,7 +30,13 @@ import { join, resolve } from "node:path";
 
 const DEFAULT_REPO = "specterworksco/capsule";
 const GITHUB_API = "https://api.github.com";
+const GITHUB_DL = "https://github.com";
 const SHELL_PROFILE_FILES = [".profile", ".bashrc", ".bash_profile", ".zshrc"];
+
+const GITHUB_HEADERS = {
+  "User-Agent": "capsule-installer/2.0",
+  "Accept": "application/vnd.github+json",
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -73,7 +79,6 @@ function detectPlatform(variant: string): PlatformInfo & { variant: string } {
   else if (osRaw === "win32") os = "windows";
   else throw new Error(`Unsupported platform: ${osRaw}`);
 
-  // Detect arch from Bun's builtin (more reliable than node's)
   let arch: PlatformInfo["arch"];
   const archRaw = process.arch;
   if (archRaw === "x64") arch = "x64";
@@ -154,7 +159,7 @@ async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response> {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: GITHUB_HEADERS });
       if (response.ok) return response;
 
       // Rate limit or server error — retry
@@ -194,12 +199,11 @@ async function getLatestVersion(repo: string): Promise<string> {
   return data.tag_name;
 }
 
-async function getDownloadUrl(repo: string, version: string, asset: string): Promise<string> {
+function getDownloadUrl(repo: string, version: string, asset: string): string {
   if (version === "latest") {
-    // Use the redirect-less URL for the release asset
-    return `https://github.com/${repo}/releases/latest/download/${asset}`;
+    return `${GITHUB_DL}/${repo}/releases/latest/download/${asset}`;
   }
-  return `https://github.com/${repo}/releases/download/${version}/${asset}`;
+  return `${GITHUB_DL}/${repo}/releases/download/${version}/${asset}`;
 }
 
 // ─── Install logic ───────────────────────────────────────────────────────
@@ -228,37 +232,42 @@ async function downloadWithProgress(url: string, destPath: string): Promise<void
   const reader = response.body?.getReader();
   if (!reader) throw new Error("Response body is not readable");
 
-  const chunks: Uint8Array[] = [];
+  const writer = createWriteStream(destPath);
   let received = 0;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) {
-      chunks.push(value);
-      received += value.length;
-      if (total > 0) showProgress(received, total);
+  return new Promise<void>((resolve, reject) => {
+    writer.on("error", (err) => reject(new Error(`Write error: ${err.message}`)));
+    writer.on("finish", () => {
+      if (total > 0 && received !== total) {
+        reject(new Error(`Download size mismatch: expected ${total} bytes, got ${received}`));
+        return;
+      }
+      resolve();
+    });
+
+    pump();
+
+    function pump(): void {
+      reader!.read().then(({ done, value }) => {
+        if (done) {
+          writer.end();
+          return;
+        }
+        if (value) {
+          received += value.length;
+          writer.write(value, () => {
+            if (total > 0) showProgress(received, total);
+            pump();
+          });
+        } else {
+          pump();
+        }
+      }).catch((err) => {
+        writer.destroy();
+        reject(new Error(`Download error: ${err.message}`));
+      });
     }
-  }
-
-  // Concatenate all chunks
-  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
-  const buf = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    buf.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  if (total > 0 && buf.length !== total) {
-    throw new Error(`Download size mismatch: expected ${total} bytes, got ${buf.length}`);
-  }
-
-  if (buf.length === 0) {
-    throw new Error("Downloaded file is empty");
-  }
-
-  await writeFile(destPath, buf);
+  });
 }
 
 // ─── PATH setup ──────────────────────────────────────────────────────────
@@ -277,7 +286,7 @@ async function addPathToShellProfile(installDir: string): Promise<void> {
     const filePath = join(home, file);
     try {
       if (!existsSync(filePath)) {
-        await writeFile(filePath, pathLine.trimStart());
+        await Bun.write(filePath, pathLine.trimStart());
         console.log(`  ✓ Created ${file} with Capsule PATH entry`);
         continue;
       }
@@ -288,7 +297,7 @@ async function addPathToShellProfile(installDir: string): Promise<void> {
         continue;
       }
 
-      await writeFile(filePath, existing + pathLine);
+      await Bun.write(filePath, existing + pathLine);
       console.log(`  ✓ Added Capsule PATH to ${file}`);
     } catch (err) {
       console.error(`  ⚠ Could not update ${file}: ${err instanceof Error ? err.message : err}`);
@@ -297,14 +306,16 @@ async function addPathToShellProfile(installDir: string): Promise<void> {
 }
 
 function addPathToWindows(installDir: string): void {
-  // On Windows, we update the User PATH environment variable
+  // Escape backticks and single quotes for PowerShell
+  const safeDir = installDir.replace(/`/g, "``").replace(/'/g, "''");
   try {
     const result = Bun.spawnSync([
       "powershell.exe", "-NoProfile", "-Command",
-      `$path = [Environment]::GetEnvironmentVariable("Path", "User");
+      `$dir = '${safeDir}';
+       $path = [Environment]::GetEnvironmentVariable("Path", "User");
        $entries = @($path -split ";" | Where-Object { $_ });
-       if ($entries -notcontains "${installDir}") {
-         $newPath = @("${installDir}") + $entries -join ";";
+       if ($entries -notcontains $dir) {
+         $newPath = @($dir) + $entries -join ";";
          [Environment]::SetEnvironmentVariable("Path", $newPath, "User");
          Write-Host "Added Capsule to User PATH";
        } else {
@@ -344,10 +355,14 @@ function parseArgs(argv: string[]): InstallOptions {
         if (!options.target) throw new Error("--target requires a value (e.g. bun-linux-x64)");
         break;
       case "--dir":
-      case "-d":
-        options.installDir = resolve(argv[++i] ?? "");
-        if (!options.installDir) throw new Error("--dir requires a path");
+      case "-d": {
+        const dirArg = argv[++i];
+        if (!dirArg || dirArg.trim() === "") {
+          throw new Error("--dir requires a path");
+        }
+        options.installDir = resolve(dirArg);
         break;
+      }
       case "--variant":
       case "-v":
         options.variant = argv[++i]?.toLowerCase() ?? "default";
@@ -448,8 +463,6 @@ async function main(): Promise<void> {
     console.log(`    ${installDir}`);
     console.log(`  And add it to your PATH.`);
     console.log("");
-    // Non-interactive by default; if run without --yes in interactive terminal,
-    // give a buffer to cancel
     await sleep(500);
   }
 
@@ -461,14 +474,13 @@ async function main(): Promise<void> {
   }
 
   // Download
-  const downloadUrl = await getDownloadUrl(opts.repo, opts.version, assetName);
+  const downloadUrl = getDownloadUrl(opts.repo, opts.version, assetName);
   console.log(`  ↓ Downloading from GitHub...`);
 
   try {
     await downloadWithProgress(downloadUrl, destPath);
     console.log(`  ✓ Downloaded ${assetName}`);
   } catch (err) {
-    // Clean up partial download
     try { await unlink(destPath); } catch { /* ignore */ }
     throw new Error(`Download failed: ${err instanceof Error ? err.message : err}`);
   }
@@ -488,12 +500,10 @@ async function main(): Promise<void> {
 
   // Verify
   await sleep(100);
-  const stat = existsSync(destPath)
-    ? { size: Bun.spawnSync(["stat", "--printf=%s", destPath]).stdout.toString().trim() }
-    : null;
+  const fileSize = existsSync(destPath) ? statSync(destPath).size : 0;
 
-  // Verify it's a valid executable
-  const verifyResult = Bun.spawnSync([destPath, "--version"], { env: { ...process.env, CAPSULE_INSTALL_DIR: installDir, PATH: `${installDir}:${process.env.PATH ?? ""}` } });
+  // Verify it's a valid executable (call by absolute path, no PATH override needed)
+  const verifyResult = Bun.spawnSync([destPath, "--version"]);
   const versionCheck = verifyResult.exitCode === 0
     ? verifyResult.stdout.toString().trim().split("\n")[0]
     : null;
@@ -504,7 +514,7 @@ async function main(): Promise<void> {
   console.log(`  ╚══════════════════════════════╝`);
   console.log("");
   console.log(`  📍 Location: ${destPath}`);
-  if (stat) console.log(`  📦 Size: ${(parseInt(stat.size) / 1024 / 1024).toFixed(1)} MB`);
+  if (fileSize > 0) console.log(`  📦 Size: ${(fileSize / 1024 / 1024).toFixed(1)} MB`);
   console.log(`  🏷️  Asset: ${assetName}`);
   console.log(`  🔖 Version: ${opts.version}`);
   if (versionCheck) console.log(`  ✅ Verify: ${versionCheck}`);
