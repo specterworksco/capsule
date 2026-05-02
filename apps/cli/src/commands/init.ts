@@ -5,6 +5,50 @@ import { defineCommand } from "citty";
 import * as p from "@clack/prompts";
 import { logger } from "../utils/logger";
 
+export type InitConfig = {
+  name: string;
+  version: string;
+  description?: string;
+  entry: string;
+};
+
+export async function createProjectFiles(projectDir: string, config: InitConfig): Promise<void> {
+  const configLines = [
+    "export default {",
+    `  name: "${config.name}",`,
+    `  version: "${config.version}",`,
+    `  entry: "${config.entry}",`,
+  ];
+
+  if (config.description) {
+    configLines.push(`  description: "${config.description}",`);
+  }
+
+  configLines.push("};", "");
+
+  const configContent = configLines.join("\n");
+  const entryContent = [
+    '#!/usr/bin/env bun',
+    "",
+    'console.log("Hello from Capsule!");',
+  ].join("\n");
+
+  const configPath = join(projectDir, "capsule.config.ts");
+  if (existsSync(configPath)) {
+    throw new Error("capsule.config.ts already exists in this directory.");
+  }
+
+  await mkdir(projectDir, { recursive: true });
+  await writeFile(configPath, configContent);
+
+  const entryPath = join(projectDir, config.entry);
+  const entryDir = resolve(projectDir, join(config.entry, ".."));
+  if (!existsSync(entryPath)) {
+    await mkdir(entryDir, { recursive: true });
+    await writeFile(entryPath, entryContent);
+  }
+}
+
 export const initCommand = defineCommand({
   meta: {
     name: "init",
@@ -71,44 +115,12 @@ export const initCommand = defineCommand({
     const s = p.spinner();
     s.start("Creating project files");
 
-    const configLines = [
-      "export default {",
-      `  name: "${result.name}",`,
-      `  version: "${result.version}",`,
-      `  entry: "${result.entry}",`,
-    ];
-
-    if (result.description) {
-      configLines.push(`  description: "${result.description}",`);
-    }
-
-    configLines.push("};", "");
-
-    const configContent = configLines.join("\n");
-
-    const entryContent = [
-      '#!/usr/bin/env bun',
-      "",
-      'console.log("Hello from Capsule!");',
-    ].join("\n");
-
-    // Write capsule.config.ts
-    const configPath = join(projectDir, "capsule.config.ts");
-    if (existsSync(configPath)) {
+    try {
+      await createProjectFiles(projectDir, result);
+    } catch (error) {
       s.stop("Aborted");
-      p.cancel("capsule.config.ts already exists in this directory.");
+      p.cancel(error instanceof Error ? error.message : String(error));
       process.exit(1);
-    }
-
-    await mkdir(projectDir, { recursive: true });
-    await writeFile(configPath, configContent);
-
-    // Write entry file if it doesn't exist
-    const entryPath = join(projectDir, result.entry);
-    const entryDir = resolve(projectDir, join(result.entry, ".."));
-    if (!existsSync(entryPath)) {
-      await mkdir(entryDir, { recursive: true });
-      await writeFile(entryPath, entryContent);
     }
 
     s.stop("Created project files");
