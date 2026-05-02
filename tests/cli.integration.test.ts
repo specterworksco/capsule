@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { runCli } from "../apps/cli/src/cli";
-import { getCertificatePath, saveCertificate } from "../apps/cli/src/core/store";
+import { getAppsDir, getBinDir, getCertificatePath, saveCertificate } from "../apps/cli/src/core/store";
+import { getSecretsForApp } from "../apps/cli/src/core/secrets";
 import { resolveReleaseAssetName } from "../apps/cli/src/core/upgrade";
 import {
   createSignedCapsule,
@@ -167,6 +168,109 @@ describe("cli", () => {
       const certificateRecord = await (await fetch(`${env.keyringUrl}/certificates/${owner.certificateId}`)).json();
       expect(certificateRecord.revokedAt).toBeString();
       expect(certificateRecord.replacedByCertificateId).toBe(replacement.certificateId);
+    });
+  });
+
+  test("list reports no apps when empty, then shows installed app, and uninstall removes it", async () => {
+    const certificate = await requestCertificate(env.keyringUrl);
+    const capsule = await createSignedCapsule(certificate, { name: "list-test-app", version: "1.0.0", description: "List test", author: "Tester" });
+
+    await withTempHome(async () => {
+      const emptyOutput = await captureConsole(() => runCli(["list"]));
+      expect(emptyOutput).toContain("No apps installed");
+
+      await publishToKeyring(env.keyringUrl, certificate, capsule.contentHash, capsule.signature);
+      await publishToRegistry(env.registryUrl, certificate, capsule);
+      await runCli(["registry", "install", "list-test-app", "--keyring-server", env.keyringUrl, "--registry-server", env.registryUrl]);
+      expect(process.exitCode).toBeUndefined();
+
+      const listOutput = await captureConsole(() => runCli(["list"]));
+      expect(listOutput).toContain("list-test-app");
+      expect(listOutput).toContain("1.0.0");
+      expect(listOutput).toContain("List test");
+
+      const uninstallOutput = await captureConsole(() => runCli(["uninstall", "list-test-app"]));
+      expect(uninstallOutput).toContain("Uninstalled list-test-app");
+      expect(process.exitCode).toBeUndefined();
+      expect(existsSync(join(getAppsDir(), "list-test-app"))).toBe(false);
+      expect(existsSync(join(getBinDir(), "list-test-app"))).toBe(false);
+
+      const finalOutput = await captureConsole(() => runCli(["list"]));
+      expect(finalOutput).toContain("No apps installed");
+    });
+  });
+
+  test("update downloads and installs a newer version", async () => {
+    const certificate = await requestCertificate(env.keyringUrl);
+    const capsuleV1 = await createSignedCapsule(certificate, { name: "update-test-app", version: "1.0.0" });
+    const capsuleV2 = await createSignedCapsule(certificate, { name: "update-test-app", version: "2.0.0" });
+
+    await publishToKeyring(env.keyringUrl, certificate, capsuleV1.contentHash, capsuleV1.signature);
+    await publishToKeyring(env.keyringUrl, certificate, capsuleV2.contentHash, capsuleV2.signature);
+    await publishToRegistry(env.registryUrl, certificate, capsuleV1);
+
+    await withTempHome(async () => {
+      await runCli(["registry", "install", "update-test-app", "--keyring-server", env.keyringUrl, "--registry-server", env.registryUrl]);
+      expect(process.exitCode).toBeUndefined();
+
+      const appDir = join(getAppsDir(), "update-test-app");
+      const manifestV1 = JSON.parse(await readFile(join(appDir, "manifest.json"), "utf8"));
+      expect(manifestV1.version).toBe("1.0.0");
+
+      await publishToRegistry(env.registryUrl, certificate, capsuleV2);
+
+      await runCli(["update", "update-test-app", "--keyring-server", env.keyringUrl, "--registry-server", env.registryUrl]);
+      expect(process.exitCode).toBeUndefined();
+
+      const manifestV2 = JSON.parse(await readFile(join(appDir, "manifest.json"), "utf8"));
+      expect(manifestV2.version).toBe("2.0.0");
+    });
+  });
+
+  test("install with --alias creates a custom binary name", async () => {
+    const certificate = await requestCertificate(env.keyringUrl);
+    const capsule = await createSignedCapsule(certificate, { name: "alias-original", version: "1.0.0" });
+    await publishToKeyring(env.keyringUrl, certificate, capsule.contentHash, capsule.signature);
+    await publishToRegistry(env.registryUrl, certificate, capsule);
+
+    await withTempHome(async () => {
+      await runCli([
+        "registry", "install", "alias-original",
+        "--alias", "my-custom-name",
+        "--keyring-server", env.keyringUrl,
+        "--registry-server", env.registryUrl,
+      ]);
+      expect(process.exitCode).toBeUndefined();
+      expect(existsSync(join(getBinDir(), "my-custom-name"))).toBe(true);
+      expect(existsSync(join(getBinDir(), "alias-original"))).toBe(false);
+      expect(existsSync(join(getAppsDir(), "alias-original"))).toBe(true);
+    });
+  });
+
+  test("secret set, list, and remove manage per-app environment secrets", async () => {
+    const certificate = await requestCertificate(env.keyringUrl);
+    const capsule = await createSignedCapsule(certificate, { name: "secret-test-app", version: "1.0.0" });
+    await publishToKeyring(env.keyringUrl, certificate, capsule.contentHash, capsule.signature);
+    await publishToRegistry(env.registryUrl, certificate, capsule);
+
+    await withTempHome(async () => {
+      await runCli(["registry", "install", "secret-test-app", "--keyring-server", env.keyringUrl, "--registry-server", env.registryUrl]);
+
+      await runCli(["secret", "set", "secret-test-app", "MY_SECRET=my-value"]);
+      expect(process.exitCode).toBeUndefined();
+
+      const secrets = await getSecretsForApp("secret-test-app");
+      expect(secrets).toEqual({ MY_SECRET: "my-value" });
+
+      const listOutput = await captureConsole(() => runCli(["secret", "list", "secret-test-app"]));
+      expect(listOutput).toContain("MY_SECRET");
+      expect(listOutput).not.toContain("my-value");
+
+      await runCli(["secret", "remove", "secret-test-app", "MY_SECRET"]);
+      expect(process.exitCode).toBeUndefined();
+
+      const secretsAfter = await getSecretsForApp("secret-test-app");
+      expect(secretsAfter).toEqual({});
     });
   });
 });
