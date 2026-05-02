@@ -3,6 +3,7 @@ import type { Manifest } from "@capsule/shared";
 export type BuildOptions = {
   cwd: string;
   output?: string;
+  protect?: boolean;
 };
 
 export type BuildResult = {

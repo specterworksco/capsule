@@ -13,7 +13,39 @@ export async function buildCapsule(options: BuildOptions): Promise<BuildResult> 
   const manifest = configToManifest(config);
   const entryPath = resolve(cwd, config.entry);
 
-  const bundle = await bundleProject(entryPath);
+  let bundle = await bundleProject(entryPath);
+
+  if (options.protect) {
+    const { default: JavaScriptObfuscator } = await import("javascript-obfuscator");
+    const code = new TextDecoder().decode(bundle);
+    const obfuscated = JavaScriptObfuscator.obfuscate(code, {
+      compact: true,
+      controlFlowFlattening: true,
+      deadCodeInjection: true,
+      debugProtection: false,
+      disableConsoleOutput: false,
+      identifierNamesGenerator: "hexadecimal",
+      log: false,
+      numbersToExpressions: true,
+      renameGlobals: false,
+      selfDefending: true,
+      simplify: true,
+      splitStrings: true,
+      stringArray: true,
+      stringArrayCallsTransform: true,
+      stringArrayEncoding: ["base64"],
+      stringArrayIndexShift: true,
+      stringArrayRotate: true,
+      stringArrayShuffle: true,
+      stringArrayWrappersCount: 2,
+      stringArrayWrappersChainedCalls: true,
+      stringArrayWrappersParametersMaxDepth: 3,
+      stringArrayWrappersType: "function",
+      unicodeEscapeSequence: false,
+    });
+    bundle = strToU8(obfuscated.getObfuscatedCode());
+  }
+
   const manifestJson = JSON.stringify(manifest, null, 2);
   const manifestBytes = strToU8(manifestJson);
   const files: Record<string, Uint8Array | string> = {

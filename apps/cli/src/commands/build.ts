@@ -13,6 +13,10 @@ export const buildCommand = defineCommand({
       alias: "o",
       description: "Output file path",
     },
+    protect: {
+      type: "boolean",
+      description: "Obfuscate bundle.js using javascript-obfuscator",
+    },
   },
   async run({ args }) {
     logger.section("Build archive");
@@ -21,6 +25,7 @@ export const buildCommand = defineCommand({
       buildCapsule({
         cwd: process.cwd(),
         output: args.output,
+        protect: args.protect,
       }),
     );
 
