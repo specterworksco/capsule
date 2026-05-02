@@ -1,0 +1,352 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
+      - bun.lock
+      - apps/cli/**
+      - packages/shared/**
+      - .github/workflows/ci.yml
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # ──────────────────────────────────────────────
+  # 1. Tests — gate for everything else
+  # ──────────────────────────────────────────────
+  test:
+    name: 🧪 Typecheck & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun test
+
+  # ──────────────────────────────────────────────
+  # 2. Version check — only on push (not PR)
+  # ──────────────────────────────────────────────
+  check-version:
+    name: 🔖 Check version
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pkg.outputs.version }}
+      tag: ${{ steps.pkg.outputs.tag }}
+      should_release: ${{ steps.pkg.outputs.should_release }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read package version & check tag
+        id: pkg
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "undefined" ]; then
+            echo "Root package.json must define a version" >&2
+            exit 1
+          fi
+
+          TAG="v$VERSION"
+          echo "version=$VERSION"  >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"          >> "$GITHUB_OUTPUT"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=true"  >> "$GITHUB_OUTPUT"
+          fi
+
+  # ──────────────────────────────────────────────
+  # 3. Build native binaries (full matrix)
+  # ──────────────────────────────────────────────
+  build:
+    name: Build ${{ matrix.artifact }}
+    needs: test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: capsule-linux-x64
+            target: bun-linux-x64
+            binary: apps/cli/dist/capsule-linux-x64
+            asset: capsule-linux-x64
+          - artifact: capsule-linux-x64-baseline
+            target: bun-linux-x64-baseline
+            binary: apps/cli/dist/capsule-linux-x64-baseline
+            asset: capsule-linux-x64-baseline
+          - artifact: capsule-linux-x64-modern
+            target: bun-linux-x64-modern
+            binary: apps/cli/dist/capsule-linux-x64-modern
+            asset: capsule-linux-x64-modern
+          - artifact: capsule-linux-arm64
+            target: bun-linux-arm64
+            binary: apps/cli/dist/capsule-linux-arm64
+            asset: capsule-linux-arm64
+          - artifact: capsule-linux-x64-musl
+            target: bun-linux-x64-musl
+            binary: apps/cli/dist/capsule-linux-x64-musl
+            asset: capsule-linux-x64-musl
+          - artifact: capsule-linux-arm64-musl
+            target: bun-linux-arm64-musl
+            binary: apps/cli/dist/capsule-linux-arm64-musl
+            asset: capsule-linux-arm64-musl
+          - artifact: capsule-macos-x64
+            target: bun-darwin-x64
+            binary: apps/cli/dist/capsule-macos-x64
+            asset: capsule-macos-x64
+          - artifact: capsule-macos-x64-baseline
+            target: bun-darwin-x64-baseline
+            binary: apps/cli/dist/capsule-macos-x64-baseline
+            asset: capsule-macos-x64-baseline
+          - artifact: capsule-macos-arm64
+            target: bun-darwin-arm64
+            binary: apps/cli/dist/capsule-macos-arm64
+            asset: capsule-macos-arm64
+          - artifact: capsule-windows-x64
+            target: bun-windows-x64
+            binary: apps/cli/dist/capsule-windows-x64.exe
+            asset: capsule-windows-x64.exe
+          - artifact: capsule-windows-x64-baseline
+            target: bun-windows-x64-baseline
+            binary: apps/cli/dist/capsule-windows-x64-baseline.exe
+            asset: capsule-windows-x64-baseline.exe
+          - artifact: capsule-windows-x64-modern
+            target: bun-windows-x64-modern
+            binary: apps/cli/dist/capsule-windows-x64-modern.exe
+            asset: capsule-windows-x64-modern.exe
+          - artifact: capsule-windows-arm64
+            target: bun-windows-arm64
+            binary: apps/cli/dist/capsule-windows-arm64.exe
+            asset: capsule-windows-arm64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile CLI
+        run: bun run --cwd apps/cli compile -- ${{ matrix.target }} ${{ matrix.asset }}
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "${{ matrix.binary }}" "release/${{ matrix.asset }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.asset }}
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────
+  # 4. Build installer binaries (subset matrix)
+  # ──────────────────────────────────────────────
+  build-installer:
+    name: Build installer ${{ matrix.artifact }}
+    needs: test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact: capsule-installer-linux-x64
+            target: bun-linux-x64
+            asset: capsule-installer-linux-x64
+          - artifact: capsule-installer-linux-arm64
+            target: bun-linux-arm64
+            asset: capsule-installer-linux-arm64
+          - artifact: capsule-installer-macos-x64
+            target: bun-darwin-x64
+            asset: capsule-installer-macos-x64
+          - artifact: capsule-installer-macos-arm64
+            target: bun-darwin-arm64
+            asset: capsule-installer-macos-arm64
+          - artifact: capsule-installer-windows-x64
+            target: bun-windows-x64
+            asset: capsule-installer-windows-x64.exe
+          - artifact: capsule-installer-windows-arm64
+            target: bun-windows-arm64
+            asset: capsule-installer-windows-arm64.exe
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile installer
+        run: bun run --cwd apps/cli compile-installer -- ${{ matrix.target }} ${{ matrix.asset }}
+
+      - name: Stage artifact
+        shell: bash
+        run: |
+          mkdir -p release
+          cp "scripts/dist/${{ matrix.asset }}" "release/${{ matrix.asset }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: release/${{ matrix.asset }}
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────
+  # 5. Create GitHub release (only when version bumps)
+  # ──────────────────────────────────────────────
+  release:
+    name: 🚀 Create GitHub release
+    if: needs.check-version.outputs.should_release == 'true'
+    needs:
+      - check-version
+      - build
+      - build-installer
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Generate release notes
+        shell: bash
+        env:
+          TAG: ${{ needs.check-version.outputs.tag }}
+          VERSION: ${{ needs.check-version.outputs.version }}
+        run: |
+          # Determine commit range
+          PREV_TAG=$(git tag --sort=-version:refname | grep '^v' | sed -n '2p')
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
+          else
+            RANGE=""
+          fi
+
+          # Helper: extract commits by conventional-commit type
+          section() {
+            local prefix="$1"
+            local emoji="$2"
+            local title="$3"
+            local commits
+            if [ -n "$RANGE" ]; then
+              commits=$(git log "$RANGE" --no-merges --pretty=format:"%s" | grep -i "^$prefix" || true)
+            else
+              commits=$(git log --no-merges --pretty=format:"%s" | grep -i "^$prefix" || true)
+            fi
+            if [ -n "$commits" ]; then
+              printf '\n### %s %s\n\n' "$emoji" "$title" >> notes.md
+              printf '%s\n' "$commits" | while IFS= read -r line; do
+                # Strip prefix like "feat:", "fix:", "feat(scope):" etc.
+                clean=$(echo "$line" | sed 's/^[a-z_]*\(([^)]*)\)\{0,1\}:\s*//I')
+                echo " - $clean" >> notes.md
+              done
+            fi
+          }
+
+          cat > notes.md <<- HEADER
+          # 🚀 Capsule v$VERSION
+
+          A new version of **Capsule** is here! Below you'll find every change included in this release.
+
+          HEADER
+
+          section "feat"       "✨" "New Features"
+          section "fix"        "🐛" "Bug Fixes"
+          section "docs"       "📚" "Documentation"
+          section "refactor"   "♻️" "Refactoring"
+          section "perf"       "⚡" "Performance Improvements"
+          section "test"       "🧪" "Tests"
+          section "ci"         "👷" "CI/CD"
+          section "chore"      "🔧" "Chores & Maintenance"
+
+          {
+            printf '\n### 📦 Installation\n\n'
+            printf '\`\`\`bash\n'
+            printf '# Download the installer for your platform (Linux/macOS):\n'
+            printf 'curl -fsSL https://github.com/specterworksco/capsule/releases/download/%s/capsule-installer-linux-x64 | bash\n' "$TAG"
+            printf '\n# Or use the self-upgrade command after installing:\n'
+            printf 'capsule upgrade\n'
+            printf '\`\`\`\n\n'
+            printf '> **Windows users:** Download \`capsule-installer-windows-x64.exe\` from the assets below.\n'
+            printf '> \n'
+            printf '> Full release history → https://github.com/specterworksco/capsule/releases\n'
+          } >> notes.md
+
+      - name: Create tag & release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check-version.outputs.tag }}
+          VERSION: ${{ needs.check-version.outputs.version }}
+        shell: bash
+        run: |
+          git tag  "$TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+          gh release create "$TAG" release/* \
+            --title "Capsule v$VERSION" \
+            --notes-file notes.md
+
+  # ──────────────────────────────────────────────
+  # 6. No-op when tag already exists
+  # ──────────────────────────────────────────────
+  already-released:
+    name: ⏭️ Version already released
+    if: needs.check-version.outputs.should_release == 'false'
+    needs: check-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip
+        run: echo "::notice::${{ needs.check-version.outputs.tag }} already exists; skipping release."
