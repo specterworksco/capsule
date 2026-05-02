@@ -1,6 +1,6 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { resolve, relative } from "node:path";
 import { strToU8 } from "fflate";
-import { resolve } from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
 import type { BuildOptions, BuildResult } from "../types";
 import { createCapsuleArchive } from "./archive";
 import { computeContentHash, signContentHash } from "./crypto";
@@ -52,6 +52,18 @@ export async function buildCapsule(options: BuildOptions): Promise<BuildResult> 
     "manifest.json": manifestBytes,
     "bundle.js": bundle,
   };
+
+  // Bundle assets declared in capsule.config.ts
+  if (config.assets && config.assets.length > 0) {
+    for (const pattern of config.assets) {
+      const glob = new Bun.Glob(pattern);
+      for await (const match of glob.scan({ cwd, absolute: false })) {
+        const fullPath = resolve(cwd, match);
+        const relPath = relative(cwd, fullPath);
+        files[relPath] = new Uint8Array(await readFile(fullPath));
+      }
+    }
+  }
   let signed = false;
 
   const certificate = await loadCertificate();
