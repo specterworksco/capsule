@@ -3,7 +3,7 @@ import { REGISTRY_TOMBSTONE_MESSAGE } from "@capsule/shared";
 import { computeContentHash } from "../crypto";
 import { downloadUrl, jsonError, MAX_UPLOAD_BYTES } from "../http";
 import { verifyCapsuleHash } from "../keyring";
-import { addOwnedApp, getApp, getVersion, putApp, putVersion } from "../kv";
+import { addOwnedApp, addToSearchIndex, getApp, getVersion, putApp, putVersion } from "../kv";
 import { appObjectKey, putAppObject } from "../r2";
 import { compareVersions } from "../semver";
 import type { Env } from "../types";
@@ -102,6 +102,12 @@ publishRoute.post("/", async (c) => {
     updatedAt: now,
   });
   await addOwnedApp(c.env, certificateId, name);
+  await addToSearchIndex(c.env, {
+    name,
+    description: content.manifest.description,
+    author: content.manifest.author,
+    latestVersion,
+  });
 
   return c.json({ success: true, name, version, downloadUrl: downloadUrl(c, name, version) });
 });

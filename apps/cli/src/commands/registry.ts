@@ -4,6 +4,7 @@ import { registryInfoCommand } from "./registry-info";
 import { registryInstallCommand } from "./registry-install";
 import { registryPublishCommand } from "./registry-publish";
 import { registryRemoveCommand } from "./registry-remove";
+import { registrySearchCommand } from "./registry-search";
 import { registryTransferCommand } from "./registry-transfer";
 
 export const registryCommand = defineCommand({
@@ -17,6 +18,7 @@ export const registryCommand = defineCommand({
     install: registryInstallCommand,
     download: registryDownloadCommand,
     remove: registryRemoveCommand,
+    search: registrySearchCommand,
     transfer: registryTransferCommand,
   },
 });

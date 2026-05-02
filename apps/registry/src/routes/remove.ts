@@ -2,7 +2,7 @@ import { REGISTRY_TOMBSTONE_MESSAGE, RegistryRemoveRequestSchema, createRegistry
 import { Hono } from "hono";
 import { verifyRegistryRemoveOwnership } from "../auth";
 import { jsonError, parseName } from "../http";
-import { deleteVersion, getApp, listVersionRecords, putApp, removeOwnedApp } from "../kv";
+import { deleteVersion, getApp, listVersionRecords, putApp, removeFromSearchIndex, removeOwnedApp } from "../kv";
 import { deleteAppObject } from "../r2";
 import type { Env } from "../types";
 
@@ -57,6 +57,7 @@ removeRoute.post("/:name/remove", async (c) => {
     tombstoneMessage: REGISTRY_TOMBSTONE_MESSAGE,
   });
   await removeOwnedApp(c.env, app.certificateId, name);
+  await removeFromSearchIndex(c.env, name);
 
   return c.json({
     success: true,

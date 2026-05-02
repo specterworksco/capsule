@@ -1,4 +1,4 @@
-import type { RegistryAppMetadata, RegistryVersionMetadata } from "@capsule/shared";
+import type { RegistryAppMetadata, RegistryVersionMetadata, RegistrySearchIndexEntry } from "@capsule/shared";
 import type { Env, PublishedVersion, PublishedVersionRecord } from "./types";
 
 export async function getApp(env: Env, name: string): Promise<RegistryAppMetadata | null> {
@@ -87,4 +87,34 @@ function ownerAppKey(certificateId: string, name: string): string {
 
 function ownerPrefix(certificateId: string): string {
   return `owner:${certificateId}:`;
+}
+
+// ── Search index ──────────────────────────────────────────────────────────────
+const SEARCH_INDEX_KEY = "_search_index";
+
+export async function getSearchIndex(env: Env): Promise<RegistrySearchIndexEntry[] | null> {
+  return env.CAPSULE_REGISTRY.get<RegistrySearchIndexEntry[]>(SEARCH_INDEX_KEY, "json");
+}
+
+export async function putSearchIndex(env: Env, index: RegistrySearchIndexEntry[]): Promise<void> {
+  await env.CAPSULE_REGISTRY.put(SEARCH_INDEX_KEY, JSON.stringify(index));
+}
+
+export async function addToSearchIndex(env: Env, entry: RegistrySearchIndexEntry): Promise<void> {
+  const index = (await getSearchIndex(env)) ?? [];
+  const existing = index.findIndex((e) => e.name === entry.name);
+  if (existing !== -1) {
+    index[existing] = entry;
+  } else {
+    index.push(entry);
+  }
+  await putSearchIndex(env, index);
+}
+
+export async function removeFromSearchIndex(env: Env, name: string): Promise<void> {
+  const index = (await getSearchIndex(env)) ?? [];
+  const filtered = index.filter((e) => e.name !== name);
+  if (filtered.length !== index.length) {
+    await putSearchIndex(env, filtered);
+  }
 }

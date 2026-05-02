@@ -6,6 +6,7 @@ import { ownersRoute } from "./routes/owners";
 import { publishRoute } from "./routes/publish";
 import { removeRoute } from "./routes/remove";
 import { resolveRoute } from "./routes/resolve";
+import { searchRoute } from "./routes/search";
 import { transferRoute } from "./routes/transfer";
 import type { Env } from "./types";
 
@@ -19,6 +20,7 @@ app.route("/download", downloadRoute);
 app.route("/apps", appsRoute);
 app.route("/apps", removeRoute);
 app.route("/apps", transferRoute);
+app.route("/search", searchRoute);
 app.route("/owners", ownersRoute);
 
 export default app;

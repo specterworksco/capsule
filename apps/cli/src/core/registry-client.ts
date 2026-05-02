@@ -5,6 +5,7 @@ import {
   RegistryPublishResponseSchema,
   RegistryRemoveResponseSchema,
   RegistryResolveResponseSchema,
+  RegistrySearchResponseSchema,
   RegistryTransferResponseSchema,
   type RegistryAppInfoResponse,
   type RegistryOwnedPackagesResponse,
@@ -12,6 +13,7 @@ import {
   type RegistryRemoveRequest,
   type RegistryRemoveResponse,
   type RegistryResolveResponse,
+  type RegistrySearchResponse,
   type RegistryTransferRequest,
   type RegistryTransferResponse,
 } from "@capsule/shared";
@@ -108,4 +110,14 @@ export async function listOwnedPackages(server: string, certificateId: string): 
   }
 
   return RegistryOwnedPackagesResponseSchema.parse(await response.json());
+}
+
+export async function searchPackages(server: string, query: string): Promise<RegistrySearchResponse> {
+  const response = await fetch(`${server}/search?q=${encodeURIComponent(query)}`);
+  if (!response.ok) {
+    const message = await response.text().catch(() => response.statusText);
+    throw new Error(`Registry search failed: ${response.status} ${message}`);
+  }
+
+  return RegistrySearchResponseSchema.parse(await response.json());
 }

@@ -121,6 +121,25 @@ export const RegistryOwnedPackagesResponseSchema = z.object({
   packages: z.array(RegistryAppNameSchema),
 });
 
+export const RegistrySearchResultSchema = z.object({
+  name: RegistryAppNameSchema,
+  description: z.string().optional(),
+  author: z.string().optional(),
+  latestVersion: RegistryVersionSchema,
+});
+
+export const RegistrySearchResponseSchema = z.object({
+  query: z.string(),
+  results: z.array(RegistrySearchResultSchema),
+});
+
+export const RegistrySearchIndexEntrySchema = z.object({
+  name: RegistryAppNameSchema,
+  description: z.string().optional(),
+  author: z.string().optional(),
+  latestVersion: RegistryVersionSchema,
+});
+
 export function createRegistryRemoveMessage(name: string, issuedAt: string): string {
   return `capsule-registry:remove:${name}:${issuedAt}`;
 }
@@ -142,3 +161,6 @@ export type RegistryTransferResponse = z.infer<typeof RegistryTransferResponseSc
 export type RegistryRemoveRequest = z.infer<typeof RegistryRemoveRequestSchema>;
 export type RegistryRemoveResponse = z.infer<typeof RegistryRemoveResponseSchema>;
 export type RegistryOwnedPackagesResponse = z.infer<typeof RegistryOwnedPackagesResponseSchema>;
+export type RegistrySearchResult = z.infer<typeof RegistrySearchResultSchema>;
+export type RegistrySearchResponse = z.infer<typeof RegistrySearchResponseSchema>;
+export type RegistrySearchIndexEntry = z.infer<typeof RegistrySearchIndexEntrySchema>;
