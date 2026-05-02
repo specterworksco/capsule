@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { REGISTRY_TOMBSTONE_MESSAGE, createRegistryRemoveMessage, createRegistryTransferMessage } from "../packages/shared/src/registry";
+import { REGISTRY_TOMBSTONE_MESSAGE, createRegistryRemoveMessage, createRegistryTransferMessage, type RegistrySearchResponse } from "../packages/shared/src/registry";
 import { signMessage } from "../apps/cli/src/core/crypto";
 import {
   createSignedCapsule,
@@ -106,6 +106,49 @@ describe("registry server", () => {
     const newOwner = await (await fetch(`${env.registryUrl}/owners/${destination.certificateId}/apps`)).json();
     expect(oldOwner.packages).toEqual([]);
     expect(newOwner.packages).toEqual(["transfer-me"]);
+  });
+
+  test("maintains search index and serves search results", async () => {
+    const certificate = await requestCertificate(env.keyringUrl);
+    const appA = await createSignedCapsule(certificate, { name: "search-alpha", version: "1.0.0", description: "Alpha app", author: certificate.author.name });
+    const appB = await createSignedCapsule(certificate, { name: "search-beta", version: "1.0.0", description: "Beta app", author: certificate.author.name });
+    await publishToKeyring(env.keyringUrl, certificate, appA.contentHash, appA.signature);
+    await publishToKeyring(env.keyringUrl, certificate, appB.contentHash, appB.signature);
+    await publishToRegistry(env.registryUrl, certificate, appA);
+    await publishToRegistry(env.registryUrl, certificate, appB);
+
+    // Empty query returns both
+    const allRes = await (await fetch(`${env.registryUrl}/search`)).json() as RegistrySearchResponse;
+    expect(allRes.results).toHaveLength(2);
+    expect(allRes.results.map((r) => r.name).sort()).toEqual(["search-alpha", "search-beta"]);
+
+    // Search by name
+    const nameRes = await (await fetch(`${env.registryUrl}/search?q=alpha`)).json() as RegistrySearchResponse;
+    expect(nameRes.results).toHaveLength(1);
+    expect(nameRes.results[0].name).toBe("search-alpha");
+    expect(nameRes.results[0].description).toBe("Alpha app");
+
+    // Search by description
+    const descRes = await (await fetch(`${env.registryUrl}/search?q=Beta`)).json() as RegistrySearchResponse;
+    expect(descRes.results).toHaveLength(1);
+    expect(descRes.results[0].name).toBe("search-beta");
+
+    // No matches
+    const noRes = await (await fetch(`${env.registryUrl}/search?q=notfound`)).json() as RegistrySearchResponse;
+    expect(noRes.results).toHaveLength(0);
+
+    // After tombstone, search index is purged
+    const issuedAt = new Date().toISOString();
+    const signature = await signMessage(createRegistryRemoveMessage("search-alpha", issuedAt), certificate.privateKey);
+    await fetch(`${env.registryUrl}/apps/search-alpha/remove`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ certificateId: certificate.certificateId, issuedAt, signature }),
+    });
+
+    const afterRemove = await (await fetch(`${env.registryUrl}/search`)).json() as RegistrySearchResponse;
+    expect(afterRemove.results).toHaveLength(1);
+    expect(afterRemove.results[0].name).toBe("search-beta");
   });
 
   test("tombstones packages, deletes R2 files, and blocks future downloads", async () => {
