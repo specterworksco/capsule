@@ -35,7 +35,7 @@ export function getAppDir(name: string): string {
   return join(getAppsDir(), name);
 }
 
-export async function installCapsuleArchive(bytes: Uint8Array): Promise<InstalledApp> {
+export async function installCapsuleArchive(bytes: Uint8Array, alias?: string): Promise<InstalledApp> {
   const archive = readCapsuleArchive(bytes);
   const appDir = getAppDir(archive.manifest.name);
 
@@ -46,7 +46,7 @@ export async function installCapsuleArchive(bytes: Uint8Array): Promise<Installe
   }
 
   await writeFile(join(appDir, "manifest.json"), JSON.stringify(archive.manifest, null, 2));
-  await createShim(archive.manifest);
+  await createShim(archive.manifest, alias);
 
   return {
     manifest: archive.manifest,
@@ -121,19 +121,20 @@ export async function warnIfBinMissingFromPath(): Promise<string | undefined> {
   return isPresent ? undefined : binDir;
 }
 
-async function createShim(manifest: Manifest): Promise<void> {
+async function createShim(manifest: Manifest, alias?: string): Promise<void> {
   await mkdir(getBinDir(), { recursive: true });
+  const shimName = alias ?? manifest.name;
 
   if (platform() === "win32") {
-    await createWindowsShim(manifest);
+    await createWindowsShim(manifest, shimName);
     return;
   }
 
-  await createUnixShim(manifest);
+  await createUnixShim(manifest, shimName);
 }
 
-async function createUnixShim(manifest: Manifest): Promise<void> {
-  const shimPath = join(getBinDir(), manifest.name);
+async function createUnixShim(manifest: Manifest, shimName: string): Promise<void> {
+  const shimPath = join(getBinDir(), shimName);
   const capsule = getCapsuleBinaryPath();
   await removeIfExists(shimPath);
 
@@ -147,8 +148,8 @@ async function createUnixShim(manifest: Manifest): Promise<void> {
   }
 }
 
-async function createWindowsShim(manifest: Manifest): Promise<void> {
-  const shimPath = join(getBinDir(), `${manifest.name}.cmd`);
+async function createWindowsShim(manifest: Manifest, shimName: string): Promise<void> {
+  const shimPath = join(getBinDir(), `${shimName}.cmd`);
   const capsule = getCapsuleBinaryPath();
   const bundle = join(getAppDir(manifest.name), manifest.entry);
   const content = `@echo off\r\n"${capsule}" __run "${bundle}" %*\r\n`;
