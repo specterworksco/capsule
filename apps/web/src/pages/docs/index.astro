@@ -1,0 +1,35 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+// @ts-ignore - Astro glob
+const docModules = import.meta.glob("../../content/docs/*.md", { eager: true });
+const docs = Object.entries(docModules).map(([path, mod]) => {
+  const slug = path.split("/").pop()?.replace(/\.md$/, "") ?? "";
+  const frontmatter = (mod as { frontmatter?: Record<string, unknown> }).frontmatter ?? {};
+  return {
+    slug,
+    title: (frontmatter.title as string) ?? slug.replace(/-/g, " "),
+    description: (frontmatter.description as string) ?? `Documentation page for ${slug.replace(/-/g, " ")}`,
+  };
+});
+---
+
+<BaseLayout title="Documentation - Capsule">
+  <div class="max-w-6xl mx-auto px-6 py-16">
+    <h1 class="text-4xl font-bold mb-4">Documentation</h1>
+    <p class="text-muted-foreground mb-12 max-w-2xl">
+      Everything you need to know about Capsule — from installing your first app to publishing your own.
+    </p>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {docs.map(({ slug, title, description }) => (
+        <a href={`/docs/${slug}`} class="block">
+          <div class="rounded-lg border border-border bg-card text-card-foreground shadow-sm p-6 h-full hover:border-primary/50 transition-colors">
+            <h3 class="text-lg font-semibold mb-2">{title}</h3>
+            <p class="text-sm text-muted-foreground">{description}</p>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</BaseLayout>

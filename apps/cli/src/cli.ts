@@ -9,6 +9,7 @@ import {
 import { buildCommand } from "./commands/build";
 import { certificateCommand } from "./commands/certificate";
 import { internalRunCommand } from "./commands/_internal";
+import { infoCommand } from "./commands/info";
 import { listCommand } from "./commands/list";
 import { uninstallCommand } from "./commands/uninstall";
 import { updateCommand } from "./commands/update";
@@ -29,14 +30,18 @@ export const mainCommand = defineCommand({
   subCommands: {
     build: buildCommand,
     certificate: certificateCommand,
+    execute: () => import("./commands/execute").then((m) => m.executeCommand),
+    info: infoCommand,
     init: () => import("./commands/init").then((m) => m.initCommand),
     list: listCommand,
     registry: registryCommand,
+    repl: () => import("./commands/repl").then((m) => m.replCommand),
     run: runCommand,
     uninstall: uninstallCommand,
     update: updateCommand,
     upgrade: upgradeCommand,
     whoami: whoamiCommand,
+    x: () => import("./commands/execute").then((m) => m.executeCommand),
     secret: () => import("./commands/secret").then((m) => m.secretCommand),
     __run: internalRunCommand,
   },

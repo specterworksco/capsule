@@ -1,0 +1,115 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+---
+
+<BaseLayout>
+  <!-- Hero -->
+  <section class="relative overflow-hidden pt-20 pb-16 px-6">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-radial from-cyan-500/10 to-transparent pointer-events-none"></div>
+    <div class="max-w-4xl mx-auto text-center relative">
+      <span class="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground mb-6">v2.3.0 — Zero runtime distribution</span>
+      <h1 class="text-5xl md:text-7xl font-bold tracking-tight mb-6">
+        Ship JS/TS apps
+        <br />
+        <span class="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">without shipping</span>
+        <br />
+        a JS runtime
+      </h1>
+      <p class="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
+        Package your CLI apps into <code class="text-cyan-400">.capsule.app</code> archives.
+        Users install and run them with a single native binary — no Node.js, no Bun, no npm needed.
+      </p>
+
+      <!-- Terminal block -->
+      <div class="max-w-2xl mx-auto mb-12">
+        <div class="bg-black/60 border border-border rounded-xl p-5 text-left font-mono text-sm">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="size-3 rounded-full bg-red-500/80"></span>
+            <span class="size-3 rounded-full bg-yellow-500/80"></span>
+            <span class="size-3 rounded-full bg-green-500/80"></span>
+            <span class="text-xs text-muted-foreground ml-2">Install Capsule</span>
+          </div>
+          <code class="text-green-400">
+            <span class="text-muted-foreground"># macOS / Linux</span><br />
+            curl -fsSLo /tmp/capsule-installer "https://github.com/specterworksco/capsule/releases/latest/download/capsule-installer-$(uname -s | tr '[:upper:]' '[:lower:]'|sed 's/darwin/macos/')-$(uname -m|sed 's/x86_64/x64/;s/aarch64/arm64/')"<br />
+            chmod +x /tmp/capsule-installer<br />
+            /tmp/capsule-installer --yes
+          </code>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-4 flex-wrap">
+        <a href="/docs" class="inline-flex items-center justify-center h-11 px-8 rounded-md bg-cyan-400 text-black font-medium hover:bg-cyan-300 transition-colors">
+          Read the docs
+        </a>
+        <a href="/registry" class="inline-flex items-center justify-center h-11 px-8 rounded-md border border-border bg-background font-medium hover:bg-secondary transition-colors">
+          Browse registry
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-6xl mx-auto px-6 py-24">
+    <h2 class="text-3xl font-bold text-center mb-4">Why Capsule?</h2>
+    <p class="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
+      Everything you need to distribute JavaScript CLI apps to end users without friction.
+    </p>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="rounded-lg border border-border bg-card p-6">
+        <div class="size-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3">
+          <svg class="size-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Zero Runtime</h3>
+        <p class="text-sm text-muted-foreground mb-3">Users run your app with a single native binary. No Node.js, no Bun, no npm install.</p>
+        <p class="text-sm text-muted-foreground">Capsule bundles your JS/TS app into a <code class="text-cyan-400">.capsule.app</code> archive. The native runner executes it directly.</p>
+      </div>
+
+      <div class="rounded-lg border border-border bg-card p-6">
+        <div class="size-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3">
+          <svg class="size-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-2">Signed &amp; Verified</h3>
+        <p class="text-sm text-muted-foreground mb-3">Every capsule is signed with Ed25519 certificates. Verify identity before running.</p>
+        <p class="text-sm text-muted-foreground">Built-in Keyring server issues certificates and records content hashes. Trust meets transparency.</p>
+      </div>
+
+      <div class="rounded-lg border border-border bg-card p-6">
+        <div class="size-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3">
+          <svg class="size-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-2">One-Command Install</h3>
+        <p class="text-sm text-muted-foreground mb-3">Install apps from the registry or direct URLs. Automatic shims, PATH management.</p>
+        <p class="text-sm text-muted-foreground"><code class="text-cyan-400">capsule registry install myapp</code> downloads, verifies, and installs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick start -->
+  <section class="max-w-6xl mx-auto px-6 pb-24">
+    <div class="rounded-xl border border-border bg-card overflow-hidden">
+      <div class="px-6 py-3 border-b border-border bg-muted/30">
+        <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quick Start</span>
+      </div>
+      <div class="p-6 grid md:grid-cols-2 gap-8">
+        <div>
+          <h3 class="font-semibold mb-3 text-sm uppercase tracking-wider text-muted-foreground">For Users</h3>
+          <div class="space-y-2 text-sm font-mono">
+            <p><span class="text-cyan-400">$</span> capsule registry install myapp</p>
+            <p><span class="text-cyan-400">$</span> myapp --help</p>
+            <p class="pt-3 text-muted-foreground/70 text-xs">No runtime. No dependencies. Just works.</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-3 text-sm uppercase tracking-wider text-muted-foreground">For Developers</h3>
+          <div class="space-y-2 text-sm font-mono">
+            <p><span class="text-cyan-400">$</span> capsule certificate request</p>
+            <p><span class="text-cyan-400">$</span> capsule build</p>
+            <p><span class="text-cyan-400">$</span> capsule registry publish dist/myapp.capsule.app</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>

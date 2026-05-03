@@ -1,0 +1,31 @@
+---
+import "@/styles/globals.css";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = "Capsule - Ship JS/TS apps without shipping a JS runtime", description = "Package JavaScript and TypeScript command-line apps into .capsule.app archives and install them behind a single native capsule binary." } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased">
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

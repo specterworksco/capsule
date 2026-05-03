@@ -2,14 +2,25 @@ import type { CapsuleSignature } from "@capsule/shared";
 
 const CONTENT_HASH_DOMAIN = new TextEncoder().encode("capsule-content-v1");
 
-export async function computeContentHash(manifestBytes: Uint8Array, bundleBytes: Uint8Array): Promise<string> {
-  const bytes = concatBytes(
+export async function computeContentHash(
+  manifestBytes: Uint8Array,
+  bundleBytes: Uint8Array,
+  sbomBytes?: Uint8Array,
+): Promise<string> {
+  const parts = [
     CONTENT_HASH_DOMAIN,
     encodeLength(manifestBytes.byteLength),
     manifestBytes,
     encodeLength(bundleBytes.byteLength),
     bundleBytes,
-  );
+  ];
+
+  // Include SBOM in the content hash if present
+  if (sbomBytes) {
+    parts.push(encodeLength(sbomBytes.byteLength), sbomBytes);
+  }
+
+  const bytes = concatBytes(...parts);
   const digest = await crypto.subtle.digest("SHA-256", toArrayBuffer(bytes));
 
   return bytesToHex(new Uint8Array(digest));

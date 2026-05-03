@@ -33,6 +33,7 @@ export function configToManifest(config: CapsuleConfig): Manifest {
     author: config.author,
     description: config.description,
     entry: "bundle.js",
+    permissions: config.permissions,
   });
 }
 

@@ -35,7 +35,11 @@ export function getAppDir(name: string): string {
   return join(getAppsDir(), name);
 }
 
-export async function installCapsuleArchive(bytes: Uint8Array, alias?: string): Promise<InstalledApp> {
+export async function installCapsuleArchive(
+  bytes: Uint8Array,
+  alias?: string,
+  permissions?: Record<string, unknown> | null,
+): Promise<InstalledApp> {
   const archive = readCapsuleArchive(bytes);
   const appDir = getAppDir(archive.manifest.name);
 
@@ -46,6 +50,12 @@ export async function installCapsuleArchive(bytes: Uint8Array, alias?: string): 
   }
 
   await writeFile(join(appDir, "manifest.json"), JSON.stringify(archive.manifest, null, 2));
+
+  // Save granted permissions if provided
+  if (permissions) {
+    await writeFile(join(appDir, "permissions.json"), JSON.stringify(permissions, null, 2));
+  }
+
   await createShim(archive.manifest, alias);
 
   return {

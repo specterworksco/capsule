@@ -6,6 +6,7 @@ import { createCapsuleArchive } from "./archive";
 import { computeContentHash, signContentHash } from "./crypto";
 import { configToManifest, loadCapsuleConfig } from "./manifest";
 import { loadCertificate } from "./store";
+import { generateSBOM } from "./sbom";
 
 export async function buildCapsule(options: BuildOptions): Promise<BuildResult> {
   const cwd = resolve(options.cwd);
@@ -53,6 +54,19 @@ export async function buildCapsule(options: BuildOptions): Promise<BuildResult> 
     "bundle.js": bundle,
   };
 
+  // Generate SBOM and include in archive
+  let sbomBytes: Uint8Array | undefined;
+  try {
+    const sbom = await generateSBOM(cwd);
+    if (sbom) {
+      const sbomJson = JSON.stringify(sbom, null, 2);
+      sbomBytes = strToU8(sbomJson);
+      files["sbom.json"] = sbomBytes;
+    }
+  } catch {
+    // SBOM generation is best-effort
+  }
+
   // Bundle assets declared in capsule.config.ts
   if (config.assets && config.assets.length > 0) {
     for (const pattern of config.assets) {
@@ -68,7 +82,7 @@ export async function buildCapsule(options: BuildOptions): Promise<BuildResult> 
 
   const certificate = await loadCertificate();
   if (certificate) {
-    const contentHash = await computeContentHash(manifestBytes, bundle);
+    const contentHash = await computeContentHash(manifestBytes, bundle, sbomBytes);
     const signature = await signContentHash(contentHash, certificate.privateKey);
     files["capsule.sig"] = JSON.stringify(
       {
