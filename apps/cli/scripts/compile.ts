@@ -14,7 +14,7 @@ const targetArgs = target ? [`--target=${target}`] : [];
 await mkdir(outDir, { recursive: true });
 
 const proc = Bun.spawn({
-  cmd: ["bun", "build", "--compile", "--minify", "--bytecode", "--splitting", ...targetArgs, entrypoint, "--outfile", outfile],
+  cmd: ["bun", "build", "--compile", "--bytecode", ...targetArgs, entrypoint, "--outfile", outfile],
   cwd: workspaceRoot,
   stdout: "inherit",
   stderr: "inherit",

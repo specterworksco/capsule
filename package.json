@@ -1,6 +1,6 @@
 {
   "name": "capsule-workspace",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -13,9 +13,6 @@
     "keyring:deploy": "bun run --cwd apps/keyring deploy",
     "registry:dev": "bun run --cwd apps/registry dev",
     "registry:deploy": "bun run --cwd apps/registry deploy",
-    "web:dev": "bun run --cwd apps/web dev",
-    "web:build": "bun run --cwd apps/web build",
-    "web:preview": "bun run --cwd apps/web preview",
     "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd apps/cli typecheck && bun run --cwd apps/keyring typecheck && bun run --cwd apps/registry typecheck",
     "compile": "bun run --cwd apps/cli compile",
     "compile-installer": "bun run --cwd apps/cli compile-installer",

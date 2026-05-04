@@ -18,8 +18,6 @@ CI order: `typecheck` → `test` → `compile` (all required).
 | `apps/cli/` | Capsule CLI (native binary) | Bun-compiled standalone |
 | `apps/keyring/` | Keyring server (CF Worker) | `wrangler dev` / `wrangler deploy` |
 | `apps/registry/` | Registry server (CF Worker) | `wrangler dev` / `wrangler deploy` |
-| `apps/web/` | Documentation + Registry UI (Astro) | `astro build` / Cloudflare Pages |
-
 `@capsule/shared` is the API contract between CLI ↔ Keyring ↔ Registry.
 
 ## Key commands
@@ -30,15 +28,13 @@ bun run compile                      # CLI → native binary (bun build --compil
 bun run compile-installer            # Installer binary
 bun run keyring:dev                  # wrangler dev for Keyring
 bun run registry:dev                 # wrangler dev for Registry
-bun run web:dev                      # Astro dev server for web app
-bun run web:build                    # Build web app for production
 bun run keyring:deploy               # wrangler deploy
 bun run registry:deploy              # wrangler deploy
 bun run bump                         # version bump script
 bun run --cwd apps/cli compile -- <target> <name>  # cross-compile
 ```
 
-`compile` and `compile-installer` pass `--minify --bytecode --splitting` to `bun build`.
+`compile` passes `--minify --bytecode` to `bun build`. `compile-installer` passes `--minify --bytecode`.
 
 ## CLI Commands (v2.3.0+)
 
@@ -106,22 +102,6 @@ bun run --cwd apps/cli compile -- <target> <name>  # cross-compile
 - Implemented in `apps/cli/src/commands/repl.ts`
 - `.exports` command lists loaded exports
 - Module exports available in the REPL context
-
-## Web App (apps/web/)
-
-- Astro 6 static site with Tailwind CSS v4
-- Dark mode throughout, Homebrew-inspired design
-- `apps/web/src/pages/index.astro` — Landing page with hero, features, install instructions
-- `apps/web/src/pages/docs/index.astro` — Documentation index
-- `apps/web/src/pages/docs/[slug].astro` — Individual doc pages (renders from `src/content/docs/*.md`)
-- `apps/web/src/pages/registry/index.astro` — Registry search UI with live API queries
-
-### Building the web app
-```bash
-bun run web:dev        # Development server
-bun run web:build      # Static build → apps/web/dist/
-bun run web:preview    # Preview production build
-```
 
 ## TypeScript quirks
 
